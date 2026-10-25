@@ -19,9 +19,19 @@ The application allows students to view their allocated gym and timing, check at
 
 - Authentication uses Google OAuth.
 - Only approved college email accounts can log in.
-- QR codes contain the student's AP number, college email, session date, gym, and slot timing.
+- Authorized staff provision student accounts; students authenticate using Google OAuth after provisioning.
+- QR codes contain a short-lived, revocable secure token and no directly readable student information.
 - Students can request a different gym slot even when they already have an allocation.
-- Physical Gym Utility Cards are not included in this version.
+- A digital gym card is included; physical gym cards are not included in this version.
+
+### Architecture
+
+- The system follows a microservices architecture with event-driven communication for asynchronous workflows.
+- Services own their data and expose versioned APIs through an authenticated API gateway. Service-to-service calls and events must be authenticated and authorized.
+- Core service boundaries include identity and student profiles, gym and slot management, applications and allocations, attendance, notifications, imports, and reporting/audit.
+- Domain events include `StudentRegistered`, `PhotoChangeRequested`, `PhotoChangeDecided`, `SlotApplicationSubmitted`, `SlotAllocated`, `StudentWaitlisted`, `WaitlistPromoted`, `AllocationTransferred`, `AttendanceRecorded`, and `ImportCompleted`.
+- Events must be versioned, idempotently processed, and retried or routed to a dead-letter mechanism on repeated failure. Publish events only after the owning service has durably committed its change (for example, through a transactional outbox).
+- Cross-service workflows must define ownership, failure handling, and compensating actions. Capacity and allocation invariants must be enforced transactionally by their authoritative service, not by eventual event delivery.
 
 ---
 
@@ -31,7 +41,10 @@ The application allows students to view their allocated gym and timing, check at
 
 Students can:
 - Sign in using their college Google account.
+- Complete registration onboarding and upload the initial photograph to their provisioned account.
 - View their profile and current gym allocation.
+- View and download their digital gym card.
+- Submit a photograph change request and track its review status.
 - Display their QR code for attendance.
 - View attendance history and absence status.
 - Browse available eligible slots.
@@ -41,7 +54,7 @@ Students can:
 
 *Note:* Students cannot directly edit their official identity, attendance records, allocation status, or eligibility.
 
-### 2.2 Gym Staff / Intern
+### 2.2 Trainer / Gym Staff / Intern
 
 Gym staff can:
 - Access the attendance scanner.
@@ -51,9 +64,9 @@ Gym staff can:
 - Search by AP number as an authorized fallback.
 - View attendance records for assigned sessions or gyms, subject to permissions.
 
-*Note:* Gym staff cannot independently change allocations, terminate students, or edit the absence policy unless explicitly authorized.
+*Note:* Trainers cannot independently change allocations, terminate students, approve photo changes, manage roles, or edit the absence policy unless explicitly authorized.
 
-### 2.3 Sports Administrator
+### 2.3 Sports Administrator / ADMIN
 
 Sports administrators can:
 - Manage student records and eligibility.
@@ -65,10 +78,12 @@ Sports administrators can:
 - Configure absence policies.
 - Publish announcements.
 - Import official student and allocation lists.
+- Import gym slots from validated Excel workbooks.
+- Review and approve or reject student photograph change requests.
 - Generate reports and exports.
 - Review audit logs.
 
-### 2.4 System Administrator
+### 2.4 System Administrator / SUPER_ADMIN
 
 System administrators manage:
 - Staff accounts and roles.
@@ -76,13 +91,25 @@ System administrators manage:
 - Authentication and security settings.
 - System health, backups, and technical operations.
 
-*Access follows least-privilege principles.*
+The application role names are `STUDENT`, `TRAINER`, `ADMIN`, and `SUPER_ADMIN`. `TRAINER` maps to assigned gym staff operations, `ADMIN` to Sports Department administration, and `SUPER_ADMIN` to system-level administration. Permissions are least-privilege and enforced by the backend.
 
 ---
 
-## 3. Google OAuth Authentication
+## 3. Account Registration and Google OAuth Authentication
 
-### 3.1 Student Login
+### 3.1 Student Registration and Provisioning
+
+- Only authorized administrators or approved import processes can create student accounts.
+- Required student information includes unique student/AP ID, full name, college email, phone number, department, year/semester, photograph, and account status.
+- During registration/onboarding, the student uploads the initial photograph against their provisioned account; an authorized administrator may also supply it through an approved import or administrative workflow.
+- The initial photograph remains pending until registration/photo review is complete and is not used on an active digital card until approved.
+- The backend validates required fields, uniqueness, and approved institutional email rules before creating an account.
+- Registration creates a provisioned account; it does not create an active gym allocation.
+- Students authenticate using the provisioned college identity through Google OAuth. A successful OAuth login must match the verified email to an active provisioned student record.
+- Account statuses include `PENDING`, `ACTIVE`, `SUSPENDED`, and `INACTIVE`. Only `ACTIVE` accounts may use student services.
+- Registration, account activation/deactivation, and changes to official student information are audited. Students cannot change their official identity fields directly.
+
+### 3.2 Student Login
 
 **Requirements:**
 - Provide a “Continue with Google” login button.
@@ -98,13 +125,13 @@ System administrators manage:
 
 **Purpose:** Give students convenient sign-in while restricting access to eligible college users.
 
-### 3.2 College Email Restrictions
+### 3.3 College Email Restrictions
 
 - The allowed college email domain or approved email list must be configurable.
 - If the university provides a verified Google Workspace domain, the application can use that domain as one eligibility check. The backend should also verify the Google identity and the student's official record.
 - An administrator must not be able to bypass account restrictions merely by entering a different email address in the frontend.
 
-### 3.3 Staff and Administrator Access
+### 3.4 Staff and Administrator Access
 
 - Staff and administrator accounts should be provisioned or approved by an authorized administrator.
 - A valid Google account alone must not automatically grant administrative permissions.
@@ -124,14 +151,30 @@ System administrators manage:
 - Official profile photo, if available and authorized.
 - Current gym allocation.
 - Allocation status.
+- Phone number and year/semester, subject to privacy permissions.
 
 ### Requirements
 - Official identity information should come from the approved student record.
 - Students should not directly change their AP number or college email.
 - Provide a correction request process for inaccurate information.
 - Preserve a record of important eligibility changes.
+- Store photographs in private, access-controlled storage; use scoped, expiring access links and enforce authorization on every retrieval.
+- Validate photograph file type and size, inspect file content rather than trusting its extension, and reject unsupported or malformed files.
+- Keep the approved photograph distinct from any pending replacement. A pending or rejected photo must not replace the approved photo.
+- Students may request a photograph change with a replacement image and optional reason. An authorized administrator must approve or reject it with a recorded decision, reviewer, and timestamp.
+- On approval, the replacement becomes the official photo and the previous photo remains available only as required by retention and audit policy. Notify the student of the decision.
 
 **Purpose:** Maintain a consistent student identity for applications and attendance.
+
+### Digital Gym Card
+
+- Every student with an active allocation has a digital gym card; students without an active allocation do not receive an active card.
+- The card displays the approved student photograph, student/AP ID, name, QR code, assigned gym and slot, start and end times, and allocation status.
+- The QR code encodes only a high-entropy, opaque, short-lived token. It must not expose the student ID, name, email, photo URL, or other personal data.
+- The backend binds the token to the student, current allocation, and applicable session; validates it against current server-side state; and supports expiry, revocation, and rotation.
+- Cards and tokens are invalidated when an allocation is ended, suspended, transferred, or otherwise becomes ineligible. A transfer must not leave a token that authorizes the former allocation.
+- Student card access is restricted to the authenticated card owner; staff may view the approved photograph and minimum identity/allocation details needed for verification.
+- Card rendering and token issuance must not make private photo storage publicly accessible.
 
 ---
 
@@ -142,6 +185,7 @@ System administrators manage:
 - Current gym and allocated slot timing.
 - Allocation status.
 - Today's scheduled session.
+- Digital gym card shortcut and card status.
 - QR code shortcut.
 - Attendance summary.
 - Absence warning, if applicable.
@@ -199,6 +243,7 @@ Each gym must have:
 Each slot must contain:
 - Unique slot ID (`slot_id`).
 - Gym ID (`gym_id`).
+- Applicable date or recurrence schedule.
 - Start time.
 - End time.
 - Capacity.
@@ -224,6 +269,19 @@ The system should show:
 
 **Purpose:** Keep schedules and availability accurate.
 
+### Slot Import from Excel
+
+Administrators can bulk-import slots from `.xlsx` workbooks for initial setup and later bulk maintenance. The database remains the source of truth; an uploaded workbook never becomes the live schedule itself.
+
+1. Accept only supported Excel formats and enforce configured file-size and worksheet limits.
+2. Require documented columns for gym ID/name, slot date or recurrence, start time, end time, capacity, and active status; reject missing or ambiguous headers.
+3. Validate date and time formats, start-before-end, positive integer capacity, known gyms, eligibility values, and active status.
+4. Detect duplicate rows within the workbook and duplicates or conflicting slots already in the database.
+5. Return a row-numbered preview that identifies valid rows and specific errors before any write.
+6. On administrator confirmation, import valid rows and report rejected rows. Invalid rows must not be silently skipped or changed.
+7. Record the operator, upload time, file name, row counts, per-row results, and import outcome in import history and the audit log.
+8. Re-imports must not create duplicates; updating existing slots requires an explicit, previewed update mode and audit trail.
+
 ---
 
 ## 8. Slot Registration
@@ -239,6 +297,7 @@ Administrators can configure:
 - Immediate allocation vs. administrator approval workflow.
 - Whether waitlists are enabled.
 - Whether applications can be withdrawn.
+- Waitlist promotion policy and any response/claim deadline, if a seat offer workflow is enabled.
 - Announcement settings.
 
 *Enforcement:* The backend must strictly enforce registration dates and daily opening hours.
@@ -265,15 +324,31 @@ When a student applies, the backend must:
 5. Check current capacity.
 6. Check whether the student already has an active allocation.
 7. Prevent duplicate applications where applicable.
-8. Create the application or allocation according to the configured workflow.
-9. Notify the student of the result.
+8. Generate and persist the application timestamp on the server in UTC; ignore or reject any client-supplied priority timestamp.
+9. Create the application or allocation according to the configured workflow.
+10. If no seat is available and waitlisting is enabled, enqueue the eligible student; otherwise return a clear full/closed result.
+11. Notify the student of the result and assigned queue position when applicable.
 
-*Atomic Capacity Re-check:* The backend must recheck capacity during the final database transaction with lock/serializable isolation.
+*Atomic Capacity Re-check:* The backend must recheck capacity during the final database transaction with locking or serializable isolation. The capacity check, application outcome, allocation, and waitlist enqueue/promotion must not permit overallocation.
 
-### 8.4 Application Statuses
+### 8.4 FCFS Waiting List
+
+- A full slot may accept eligible applicants into a waiting list when the registration policy enables it.
+- Strict first-come-first-served (FCFS) ordering is based only on the backend-generated application timestamp, ascending. The backend must not trust client clocks or submitted timestamps.
+- Persist a monotonic sequence number as a deterministic tie-breaker for applications with equal timestamps.
+- Show each student their own position and status; administrators can view the complete ordered queue and its history.
+- When capacity is released, promote the earliest eligible waiting student(s) atomically, rechecking account status, eligibility, registration policy, and slot capacity at promotion time.
+- A student may have only one active application or waitlist entry for the same slot. Withdrawal, rejection, ineligibility, or an expired offer removes the entry from active priority while preserving history.
+- If a seat offer/claim deadline is configured, its expiry and the next promotion must be handled idempotently and logged. Without an offer workflow, promotion allocates the seat directly.
+- Administrative priority overrides require a reason, authorized permission, and immutable audit record; they must not silently reorder the queue.
+- Notify students when they join the queue, when their position materially changes, and when they are promoted, skipped, or removed, with an appropriate reason.
+
+### 8.5 Application Statuses
 - `PENDING`
 - `APPROVED`
 - `REJECTED`
+- `WAITLISTED`
+- `OFFERED` (only if a seat-claim workflow is configured)
 - `WITHDRAWN` (when permitted)
 - `EXPIRED` (if configured)
 
@@ -339,54 +414,43 @@ The Sports Department chooses one of these policies:
 
 ## 10. QR Code Generation
 
-### 10.1 QR Contents
+### 10.1 QR Contents and Token Lifecycle
 
-The QR code contains:
-- Student AP number.
-- Student college email.
-- Session date.
-- Gym name or gym ID.
-- Slot start time.
-- Slot end time.
+The QR code contains only an opaque, high-entropy, short-lived signed or server-verifiable token. It must not encode a student's AP number, name, email, photograph, gym, slot, or other personal information.
 
 Example payload:
 ```json
 {
-  "apNumber": "AP123456",
-  "email": "student@srmap.edu.in",
-  "sessionDate": "2026-10-25",
-  "gym": "C. V. Raman Gym",
-  "slotStart": "16:00",
-  "slotEnd": "16:45"
+  "token": "<opaque-short-lived-token>"
 }
 ```
+
+The backend associates the token with the student, active allocation, and scheduled session, and validates those records at scan time. Tokens expire, can be revoked or rotated, and cannot authorize check-in after allocation or session eligibility changes.
 
 ### 10.2 QR Page Display
 The page displays:
 - Student name.
 - AP number.
-- College email.
-- Current gym.
-- Slot timing.
+- Approved photograph.
+- Current gym and slot timing.
 - Session date.
+- Allocation status.
 - Dynamic QR code.
 
-The QR code is generated dynamically from the student's current allocation and the applicable session. Students cannot edit the QR fields through the frontend.
+The student sees only their own card. The QR token is generated from the student's current allocation and applicable session. Card details are retrieved from the backend and are not encoded in the QR token.
 
 ### 10.3 QR Validation Security Model
 
 The scanner must not trust QR contents by themselves:
-- When a code is scanned, the backend compares its AP number, email, date, gym, and timing against the authenticated student record, active allocation, and scheduled session.
+- When a code is scanned, the backend validates token integrity, expiry, revocation state, student account, active allocation, assigned gym/slot, and scheduled session.
 - The scanner rejects:
-  - Unknown AP numbers.
-  - Email/AP number mismatches.
+  - Unknown, malformed, expired, or revoked tokens.
   - Students without a valid allocation.
-  - QR codes for a different gym or slot.
-  - Codes for the wrong session date.
+  - Tokens for a different gym, slot, or session.
   - Invalid or manipulated payloads.
   - Duplicate attendance attempts for the same session.
 
-*Security Note:* This design intentionally uses a clean QR payload verified on the backend against server records. Staff visually verify the student's official photo and record attendance. Signed, short-lived tokens can be incorporated as an additional anti-replay layer.
+*Security Note:* Staff visually verify the student's approved photo before recording attendance. Tokens are treated as bearer credentials and must not be logged in plaintext.
 
 ---
 
@@ -395,9 +459,9 @@ The scanner must not trust QR contents by themselves:
 ### Scanner Workflow
 1. Authorized staff opens the scanner interface.
 2. Staff scans the QR code using the camera scanner.
-3. The system reads the AP number, email, date, gym, and timing.
-4. The backend validates the information against official records.
-5. The scanner displays the student's official photo (if available) and allocation details.
+3. The system reads the opaque QR token.
+4. The backend validates the token against current student, allocation, and session records.
+5. The scanner displays the student's approved photo and minimum necessary identity/allocation details.
 6. Staff confirms that the person matches the record.
 7. The backend records attendance.
 8. The scanner displays success or a specific rejection reason.
@@ -515,6 +579,10 @@ Support bulk import for official student and allocation lists:
 Triggered on:
 - Application submitted.
 - Application approved or rejected.
+- Student added/activated by an administrator (where notification is appropriate).
+- Photograph change request submitted, approved, or rejected.
+- Student added to a waiting list, promoted, skipped, or removed from the queue.
+- Slot import completed, including validation summary for the operator.
 - Slot transfer completed.
 - Allocation terminated or reinstated.
 - Registration window opening or closing.
@@ -558,6 +626,8 @@ Authorized administrators can view and export reports in CSV/Excel format:
 - Absence warnings and termination candidate rosters.
 - Terminated allocations history.
 - Slot registration and transfer request histories.
+- Current and historical waitlists, including promotion and override history.
+- Photograph change request decisions.
 - Data import history.
 - System audit activity logs.
 
@@ -608,15 +678,18 @@ Each record stores:
 Administrators configure:
 - Gym facilities, descriptions, and eligibility groups.
 - Slot timings, days of operation, and capacities.
+- Supported slot-import workbook columns, limits, duplicate rules, and update mode.
 - Registration windows and opening/closing schedules.
+- FCFS waiting-list enablement, promotion behavior, and optional seat-claim deadline.
 - Transfer workflow preference (Admin approval vs. immediate transfer).
-- QR payload parameters.
+- QR token lifetime, rotation, and revocation policy.
+- Photograph upload limits, retention policy, and photo-change review permissions.
 - Check-in rules and buffer times.
 - Absence policy thresholds, measurement units, and grace periods.
 - University holidays and gym closure calendar.
 - Notification channels and templates.
 - Approved college email domains (e.g., `@srmap.edu.in`).
-- Role permissions (Student, Staff, Sports Admin, System Admin).
+- Role permissions (`STUDENT`, `TRAINER`, `ADMIN`, `SUPER_ADMIN`).
 - System timezone (IST / `Asia/Kolkata`) and date formats.
 
 ---
@@ -625,12 +698,15 @@ Administrators configure:
 
 ### Required Tables
 - `users`: Core authentication identity, roles, status.
-- `students`: Official college student profile (AP number, department, year, photo URL).
+- `students`: Official college student profile (AP number, department, year/semester, phone, approved photo reference, account status).
+- `photo_change_requests`: Requested photo reference, requester, status, reviewer, decision reason, and timestamps.
 - `gyms`: Gym facilities (name, location, eligibility group, active status).
 - `gym_slots`: Slot definitions (gym reference, timing, capacity, active status).
+- `gym_card_tokens`: Hashed token reference, student/allocation/session binding, expiry, revocation, and rotation metadata; never store reusable plaintext tokens.
 - `allocations`: Active and historical student gym allocations.
 - `registration_windows`: Registration periods, eligible groups, daily timing rules.
-- `applications`: New slot applications and approval statuses.
+- `applications`: New slot applications, server-generated UTC submission timestamp, deterministic sequence, and approval/waitlist statuses.
+- `waitlist_entries`: FCFS queue membership and lifecycle where maintained separately from application records.
 - `slot_change_requests`: Transfer applications linking current and requested slots.
 - `attendance_sessions`: Pre-generated daily sessions per slot (excluding holidays).
 - `attendance`: Validated check-in records.
@@ -639,7 +715,8 @@ Administrators configure:
 - `policy_exemptions`: Approved medical, sports, or academic exemptions.
 - `notifications`: User-specific in-app notifications.
 - `announcements`: Broadcast announcements.
-- `imports`: Bulk file upload logs, operator ID, error records.
+- `imports` and `import_rows`: Bulk student/allocation/slot file history, operator, row-level validation outcomes, and error records.
+- `outbox_events` (or an equivalent durable event publication mechanism): Pending domain events committed with authoritative service changes.
 - `audit_logs`: Append-only security and operational audit trail.
 - `support_requests`: Student help tickets.
 
@@ -651,8 +728,10 @@ Administrators configure:
 5. **No Invalid Attendance:** Terminated or inactive allocations cannot authorize attendance.
 6. **Historical Preservation:** Historical allocations, transfers, and attendance records are never deleted.
 7. **Atomic Operations:** Transfers and capacity updates run within isolated database transactions.
-8. **Untrusted QR:** QR payloads are verified against live database state.
-9. **Physical Card Exclusion:** No physical gym-card entity or card management features are included.
+8. **Untrusted QR:** Opaque QR tokens are verified against live database state and stored/handled as credentials.
+9. **FCFS Ordering:** Waiting-list priority uses server-generated UTC timestamps ascending and a persisted sequence tie-breaker; clients cannot choose priority.
+10. **Card Revocation:** Card tokens cannot authorize a check-in after expiry, revocation, or a change that invalidates their bound allocation/session.
+11. **Event Consistency:** Domain events are published only for committed changes and consumers must be idempotent.
 
 ---
 
@@ -671,12 +750,17 @@ Versioned REST API base: `/api/v1`
 - `GET /student/dashboard` — Overview of allocation, attendance, and alerts.
 - `GET /student/allocation` — Current active allocation details.
 - `GET /student/qr-code` — Current dynamic QR code payload.
+- `GET /student/gym-card` — Digital card details and current QR token for the authenticated student.
+- `POST /student/photo-change-requests` — Submit a replacement photograph for administrative review.
+- `GET /student/photo-change-requests` — View own photo-change request history and decisions.
+- `POST /student/registration/photo` — Upload the initial photograph for the authenticated provisioned student account.
 - `GET /student/attendance` — Complete attendance history and stats.
 - `GET /student/attendance/stats` — Weekly frequency, streaks, and absence status.
 - `GET /student/available-slots` — Search active slots with remaining capacity.
 - `GET /student/registration-status` — Current registration window status.
 - `GET /student/applications` — History of slot applications.
 - `POST /student/applications` — Submit new slot application.
+- `GET /student/applications/:id/waitlist-position` — View the student's own current queue status/position.
 - `POST /student/slot-change-requests` — Request transfer to another slot.
 - `GET /student/slot-change-requests` — View transfer request status.
 - `GET /student/notifications` — In-app notifications list.
@@ -690,10 +774,13 @@ Versioned REST API base: `/api/v1`
 
 ### Administrator Endpoints (`/api/v1/admin`)
 - `/admin/students` — CRUD student records and view individual histories.
+- `/admin/students/:id/photo-change-requests` — Review and approve/reject photo-change requests with a reason.
 - `/admin/gyms` — CRUD gym facilities.
 - `/admin/slots` — CRUD slots and capacity adjustments.
+- `/admin/slot-imports` — Upload, validate, preview, confirm, and review Excel slot imports and row-level results.
 - `/admin/registration-windows` — Configure registration windows.
 - `/admin/applications` — Review and approve/reject new slot applications.
+- `/admin/waitlists` — Inspect ordered queues, promotion outcomes, and authorized priority overrides.
 - `/admin/slot-change-requests` — Review and approve/reject transfer requests.
 - `/admin/allocations` — Direct allocation, transfer, termination, and reinstatement.
 - `/admin/attendance` — Filter, inspect, and correct attendance records.
@@ -701,7 +788,7 @@ Versioned REST API base: `/api/v1`
 - `/admin/absence-monitor` — View at-risk students and process terminations.
 - `/admin/announcements` — Publish and manage targeted announcements.
 - `/admin/reports` — Generate and export reports (CSV/Excel).
-- `/admin/imports` — Upload and preview bulk student/allocation files.
+- `/admin/imports` — Upload and preview student, allocation, and gym-slot imports; confirm valid rows and inspect import history.
 - `/admin/audit-logs` — Query append-only audit trail.
 - `/admin/settings` — Configure campus settings and email domain rules.
 
@@ -712,9 +799,12 @@ Versioned REST API base: `/api/v1`
 - **OAuth & Domain Restrictions:** Strict verification of Google tokens and institutional email domain (`@srmap.edu.in`).
 - **Role-Based Access Control:** Strict RBAC at every API gateway endpoint.
 - **Data Protection:** HTTPS encryption in transit; encrypted sensitive fields at rest.
+- **Photo Protection:** Private object storage, authorization-checked access, short-lived links, and audited administrative access; never expose public permanent photo URLs.
 - **Injection & Tampering Protection:** Parameterized queries, ORM validations, rate-limiting on auth and check-in endpoints.
 - **Student Privacy:** Profile photos and personal data restricted to authorized staff screens.
-- **Untrusted QR Payloads:** Treated as unverified client input; validated against server records before any action.
+- **QR Token Protection:** Tokens are opaque, short-lived, revocable, excluded from plaintext logs, and validated against current server records before any action.
+- **Event Security:** Events contain only the minimum necessary data, are authenticated between services, and are protected against replay and unauthorized subscription.
+- **Import Protection:** Excel uploads are size/type constrained, parsed without executing formulas/macros, validated before persistence, and protected from unsafe spreadsheet formula export.
 - **Append-only Audit Log:** System records all administrative actions for transparency.
 
 ---
@@ -725,6 +815,8 @@ Versioned REST API base: `/api/v1`
 - **Concurrency:** Database locking prevents race conditions and overallocation when slots have 1 remaining seat.
 - **Responsiveness:** Modern, fluid UI optimized for mobile devices (students, staff scanner) and desktop (admin dashboard).
 - **Reliability:** Background jobs for absence monitoring and session generation are idempotent.
+- **Event Delivery:** Asynchronous events are durably delivered with retry, deduplication, observable failure handling, and dead-letter recovery.
+- **File Handling:** Photo and spreadsheet uploads have configurable size limits, clear validation errors, and controlled retention.
 - **Auditability:** Complete history retention with zero silent data loss.
 
 ---
@@ -738,9 +830,15 @@ Versioned REST API base: `/api/v1`
 | Requested slot becomes full before approval | System detects zero capacity upon admin approval, prevents overallocation, and notifies admin. |
 | Student submits identical request twice | Idempotency key / active application check blocks duplicate submission. |
 | Registration closes while application page is open | Server validates window status upon submit and rejects with clear expiry message. |
-| Concurrent requests for last available seat | Database serializable transaction allocates seat to the first commit and gracefully rejects the second. |
-| QR AP number and email do not match | Scanner rejects check-in immediately with `EMAIL_AP_MISMATCH`. |
-| QR presented for wrong gym or timing | Scanner displays `WRONG_GYM_OR_SLOT` with student's actual allocated slot details. |
+| Concurrent requests for last available seat | Database transaction allocates no more than one seat; losing eligible applicants are queued in server-timestamp FCFS order when waitlisting is enabled. |
+| Client submits a forged application timestamp | Backend ignores/rejects the supplied value and uses its own UTC timestamp and sequence tie-breaker. |
+| A seat opens while a waitlist exists | Earliest eligible entry is promoted atomically; subsequent promotions are retried safely if an event or worker is duplicated. |
+| A waitlisted student becomes ineligible before promotion | The entry is skipped or removed according to policy with a reason, audit record, and notification; no seat is overallocated. |
+| Invalid or duplicate rows appear in an Excel slot upload | Preview reports row-specific errors; only confirmed valid rows are imported, and no row is silently altered. |
+| An import is retried after a timeout | Idempotency and duplicate detection prevent duplicate slots; the operator can inspect the persisted import result. |
+| Photograph change request is pending or rejected | The currently approved photo remains displayed until an authorized administrator approves the replacement. |
+| Private photo URL or image is requested by an unauthorized user | The request is denied; private storage remains inaccessible and the event is logged where appropriate. |
+| QR token is expired, revoked, replayed, or bound to a former allocation | Scanner rejects it and returns a specific safe outcome without exposing personal information. |
 | Student scans multiple times in one session | Second scan rejected with `ALREADY_CHECKED_IN` displaying original check-in timestamp. |
 | Camera permission denied on staff device | Staff can toggle to authorized manual AP number search with audit logging. |
 | Gym closed or holiday declared | Session is flagged as `CANCELLED`; students are not penalized for absence. |
@@ -752,19 +850,22 @@ Versioned REST API base: `/api/v1`
 ### Phase 1 — Foundation
 - PostgreSQL schema setup with Prisma/TypeORM.
 - Google OAuth 2.0 with college email domain validation.
-- RBAC middleware (`STUDENT`, `GYM_STAFF`, `SPORTS_ADMIN`, `SYSTEM_ADMIN`).
+- Provisioned student accounts, private photograph storage, and photo-change approval workflow.
+- RBAC middleware (`STUDENT`, `TRAINER`, `ADMIN`, `SUPER_ADMIN`).
 - Gym facilities and slot management.
-- Bulk student data import with CSV validation.
+- Excel slot-import validation, preview, confirmation, and import history.
+- Bulk student/allocation data import with CSV/Excel validation.
 
 ### Phase 2 — Student Portal & Slot Transfer Requests
 - Responsive student dashboard.
 - Active allocation display and slot search.
 - Registration window engine.
 - New slot application workflow.
+- Transactional capacity enforcement and strict server-timestamp FCFS waiting lists.
 - **Change Gym Slot** transfer request engine (Option A admin approval and Option B atomic swap).
 
 ### Phase 3 — QR Attendance System
-- Dynamic QR generation payload.
+- Digital gym card and short-lived opaque QR token generation/revocation.
 - In-browser mobile camera scanner for staff (`html5-qrcode`).
 - Server-side multi-point validation and duplicate prevention.
 - Identity photo verification and manual AP search fallback.
@@ -789,13 +890,15 @@ Versioned REST API base: `/api/v1`
 ## 27. Acceptance Criteria
 
 GymSlot is ready for pilot deployment when:
-1. Students sign in strictly through the verified college Google OAuth flow.
-2. Students can view current allocations and search available slots.
-3. Students can submit slot-change transfer requests without losing their active allocation until approved.
-4. Slot capacity is strictly enforced with zero overallocation under concurrent requests.
-5. Dynamic QR codes are generated with student identity, gym, and slot session info.
-6. Attendance scanner validates QR payloads against backend allocations and prevents duplicate check-ins.
-7. Authorized manual AP search check-in works with audit logging.
-8. Absence policies can be configured by administrators without code changes.
-9. Bulk student CSV imports validate data, preview errors, and require explicit confirmation.
-10. All administrative transfers, terminations, and attendance corrections are recorded in append-only audit logs.
+1. Authorized users can provision student accounts with all required identity, contact, academic, photograph, and status fields; students can authenticate only after their provisioned identity is matched through verified college Google OAuth.
+2. Students can view current allocations, search eligible slots, and access a digital card containing the approved photo, ID, name, QR, slot schedule, and allocation status.
+3. Student photograph replacements remain pending until an authorized administrator approves them; approval/rejection and access are auditable.
+4. Students can submit slot-change transfer requests without losing their active allocation until approved.
+5. Slot capacity is strictly enforced with zero overallocation under concurrent requests.
+6. Eligible full-slot applications enter a strict FCFS waiting list ordered by backend UTC timestamp and deterministic sequence; clients cannot submit or alter priority timestamps.
+7. Dynamic QR codes contain only an opaque, short-lived token; allocation changes revoke ineligible tokens, and scanners validate against current server state.
+8. Attendance scanner validates QR tokens against backend allocations and prevents duplicate check-ins; authorized manual AP number check-in works with audit logging.
+9. Administrators can import Excel gym slots after column, date, time, capacity, duplicate, and row validation; they can preview results, confirm valid rows, see rejected rows, and retrieve import history.
+10. Absence policies, registration windows, and waitlist behavior can be configured by administrators without code changes.
+11. Microservices publish durable, versioned domain events only after authoritative changes commit; consumers safely handle retries and duplicates.
+12. All administrative account, photo, import, queue, allocation, termination, and attendance decisions are recorded in append-only audit logs.
