@@ -1,283 +1,522 @@
-# 🏋️ Gym Allocation & Attendance Portal
+# 🏋️‍♂️ GymSlot — Gym Slot Allocation & Attendance Portal
 
-A secure, role-based web portal designed for college campuses to manage gym allocations, track student attendance, prevent proxy check-ins using dynamic QR codes, and automate slot retention based on weekly attendance frequency.
+[![SRM University-AP](https://img.shields.io/badge/University-SRM%20University--AP-blue.svg)](https://srmap.edu.in)
+[![Authentication](https://img.shields.io/badge/Auth-Google%20OAuth%202.0-red.svg)](https://developers.google.com/identity/protocols/oauth2)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![PRD](https://img.shields.io/badge/PRD-Requirements%20v2.0-purple.svg)](REQUIREMENTS.md)
+
+**GymSlot** is a modern, enterprise-grade gym slot allocation, attendance tracking, and student management portal purpose-built for **SRM University-AP**.
+
+It digitizes the end-to-end gym lifecycle: students can authenticate via official college Google accounts, view allocated facilities and timings, request slot transfers while safeguarding active allocations, generate secure QR codes for daily sessions, and track their workout frequency. Gym staff can verify student identities and prevent proxy check-ins via camera scanners, while Sports Administrators manage facilities, strict capacity limits, registration windows, configurable absence policies, and auditable reports.
 
 ---
 
 ## 📌 Table of Contents
 
-- [Overview](#-overview)
-- [Key Features](#-key-features)
-  - [Student Portal](#1-student-portal)
-  - [Admin & Staff Portal](#2-admin--staff-portal)
-  - [Anti-Proxy Verification System](#3-anti-proxy-qr-verification)
-  - [Slot Retention & Inactivity Policy](#4-slot-retention--inactivity-policy)
-- [How It Works (Workflow)](#-how-it-works-workflow)
+- [Overview & Objectives](#-overview--objectives)
+- [User Roles & Permissions](#-user-roles--permissions)
+- [Core Features](#-core-features)
+  - [1. Google OAuth & Domain Restriction](#1-google-oauth--domain-restriction)
+  - [2. Multi-Gym & Dynamic Slot Management](#2-multi-gym--dynamic-slot-management)
+  - [3. Slot Registration & Registration Windows](#3-slot-registration--registration-windows)
+  - [4. Change Gym Slot (Student Transfer Requests)](#4-change-gym-slot-student-transfer-requests)
+  - [5. Dynamic QR Code Check-In & Scanner](#5-dynamic-qr-code-check-in--scanner)
+  - [6. Configurable Absence Monitoring & Lifecycle](#6-configurable-absence-monitoring--lifecycle)
+  - [7. Bulk Data Import & Audit Trail](#7-bulk-data-import--audit-trail)
 - [System Architecture](#-system-architecture)
-- [Recommended Tech Stack](#-recommended-tech-stack)
+- [Workflows & Sequence Diagrams](#-workflows--sequence-diagrams)
+  - [Attendance Verification Flow](#attendance-verification-flow)
+  - [Slot Transfer Request Flow](#slot-transfer-request-flow)
 - [Database Schema (Core Entities)](#-database-schema-core-entities)
+- [REST API Specification (`/api/v1`)](#-rest-api-specification-apiv1)
+- [Tech Stack](#-tech-stack)
 - [Getting Started](#-getting-started)
   - [Prerequisites](#prerequisites)
-  - [Environment Variables](#environment-variables)
+  - [Environment Configuration](#environment-configuration)
   - [Installation & Setup](#installation--setup)
-- [API Overview](#-api-overview)
-- [Roadmap](#-roadmap)
-- [Contributing & License](#-contributing--license)
+- [Edge Cases & System Handling](#-edge-cases--system-handling)
+- [Development Roadmap](#-development-roadmap)
+- [License](#-license)
 
 ---
 
-## 📖 Overview
+## 📖 Overview & Objectives
 
-Colleges often face high demand for campus gym facilities with limited capacity. Without a strict attendance mechanism, allotted gym slots go underutilized while students on waitlists are turned away. Traditional manual registers or static sign-ins are susceptible to proxy attendance and lack actionable insights.
+Campus gym facilities face high demand across multiple campus locations (e.g., **C. V. Raman**, **Ganga**, **Krishna**, and **Narmada**). In the absence of an automated system:
+- High demand leads to rapid slot exhaustion and underutilization by inactive students.
+- Paper registers or static cards encourage proxy check-ins.
+- Students needing slot adjustments risk forfeiting their active slot before securing another.
+- Administrators lack real-time visibility into live occupancy, capacity constraints, and chronic absenteeism.
 
-The **Gym Allocation & Attendance Portal** solves this by:
-1. Restricting access strictly to verified institutional email addresses.
-2. Generating dynamic, single-use or time-stamped QR codes on student devices.
-3. Requiring on-desk admin verification via scanner to eliminate proxy check-ins.
-4. Monitoring weekly workout frequency and automatically revoking slots for inactive students (e.g., absent for 4 consecutive weeks), reallocating slots to active candidates.
+**GymSlot** addresses these challenges through:
+1. **Zero-Proxy QR Attendance:** Daily session QR codes verified server-side against live registrations, slot times, and official records.
+2. **Safe Slot Transfers:** Students can apply to switch gym slots without forfeiting their active allocation unless the transfer is approved and completed.
+3. **Strict Capacity Enforcement:** Atomic database transactions guarantee no slot ever exceeds its configured capacity ceiling.
+4. **Configurable Absence Rules:** Customizable absence measurement policies, warning alerts, and automated capacity reclamation.
+5. **Centralized Administration:** Unified portal for bulk CSV student roster imports, schedule adjustments, announcements, and compliance auditing.
+6. **Physical Card Exclusion:** Digital-first workflow with no physical utility cards required.
 
 ---
 
-## ✨ Key Features
+## 👥 User Roles & Permissions
 
-### 1. Student Portal
-- **Campus SSO / Email Authentication**: Login restricted exclusively to official college domain email addresses (e.g., `@college.edu`).
-- **Dynamic Attendance QR Code**: Real-time QR generation containing:
-  - Student AP / Registration Number
-  - Official College Email
-  - Date & rotating timestamp / verification token (to prevent screenshots/forwarding).
-- **Weekly Frequency Dashboard**: Visual tracker showing weekly attendance count, streaks, and minimum required visits.
-- **Slot Status & Notifications**: Displays current membership status (Active, Inactive, At Risk of Revocation).
+| Role | Access & Scope | Key Responsibilities |
+| :--- | :--- | :--- |
+| **Student** | Student Portal | Signs in via college Google account, views profile, inspects current gym slot, displays QR code for check-in, applies for new/transfer slots, views attendance history, and receives alerts. Cannot alter official identity or attendance. |
+| **Gym Staff / Intern** | Staff Scanner Portal | Operates mobile camera QR scanner at gym reception, verifies student photo/identity, logs attendance, executes authorized fallback search by AP number, and views session rosters. Cannot alter allocations or absence policies. |
+| **Sports Administrator** | Admin Dashboard | Manages gyms, slot timings, and capacities; schedules registration windows; approves/rejects slot transfer requests; monitors absence risks; handles student imports; conducts attendance audits and exports reports. |
+| **System Administrator** | System Config | Manages staff roles, Google OAuth parameters, allowed college domains, system health, and database backups. Follows the principle of least privilege. |
 
-### 2. Admin & Staff Portal
-- **Master Slot Roster**: Live dashboard showing all students with active gym allocations, remaining capacity, and waitlist.
-- **Fast QR Scanner**: In-app camera scanner for check-in desk staff to scan student QR codes in seconds.
-- **Instant Attendance Logging**: Real-time validation and attendance recording with audit timestamps.
-- **Inactivity & Retention Reports**: Automated reports highlighting students failing to meet attendance requirements.
+---
 
-### 3. Anti-Proxy QR Verification
-- Attendance cannot be marked remotely or by sharing static screenshots.
-- The student's portal generates a payload containing:
+## ✨ Core Features
+
+### 1. Google OAuth & Domain Restriction
+- **Single Sign-On (SSO):** "Continue with Google" OpenID Connect flow.
+- **Institutional Domain Filtering:** Only verified email addresses matching the approved university domain (e.g., `@srmap.edu.in`) or explicit whitelist can access the portal.
+- **Identity Matching:** Authenticated Google accounts are matched against the official university student database (`students` table).
+- **Backend Enforced RBAC:** Role permissions are strictly verified server-side on every request.
+
+### 2. Multi-Gym & Dynamic Slot Management
+- **Configurable Gym Facilities:** Dynamic configuration for **C. V. Raman**, **Ganga**, **Krishna**, **Narmada**, and future facilities without code changes.
+- **Slot Capacity & Timings:** Customizable start/end times, student eligibility criteria, and maximum capacity caps.
+- **Live Metrics:** Instant calculation of allocated slots, available capacity, and occupancy percentages.
+
+### 3. Slot Registration & Registration Windows
+- **Controlled Application Periods:** Administrators open and close registration windows by date range and daily operational hours.
+- **Student Slot Discovery:** Real-time search filtered by gym, timing, and available seats.
+- **Concurrency Protection:** Lock-isolated transactions ensure that when 1 seat remains, simultaneous applicants do not result in overallocation.
+
+### 4. Change Gym Slot (Student Transfer Requests)
+*(Core Feature)*
+- **Protected Transfer Workflow:** Students who already hold an allocation can apply for another eligible slot without prematurely forfeiting their active slot.
+- **Workflow Options:**
+  - **Option A (Admin Approval - Default):** Request is placed in pending state; current allocation stays active until an administrator approves and verifies destination capacity.
+  - **Option B (Immediate Transfer):** Atomic database swap immediately reallocates the student and releases the old seat back to the pool.
+- **Audit Preservation:** Previous allocations are preserved in history with status transitions (`TRANSFERRED`).
+
+### 5. Dynamic QR Code Check-In & Scanner
+- **Dynamic Session Payload:**
   ```json
   {
-    "ap_number": "AP21110010123",
-    "email": "student@college.edu",
-    "date": "2026-10-25",
-    "timestamp": 1761388800,
-    "signature": "hmac_sha256_hash"
+    "apNumber": "AP21110010123",
+    "email": "student@srmap.edu.in",
+    "sessionDate": "2026-10-25",
+    "gym": "C. V. Raman Gym",
+    "slotStart": "16:00",
+    "slotEnd": "16:45"
   }
   ```
-- Admin scans the QR code at the gym entrance; the server verifies the signature, student slot validity, and updates the daily record.
+- **Server-Side Validation:** The scanner does not trust QR data alone. It validates the student's active allocation, assigned gym, slot timing, and session date against backend records.
+- **Anti-Proxy Identity Screen:** Scanner displays the student's official photo and registration details for physical desk verification.
+- **Duplicate Prevention:** Attempts to scan multiple times during the same scheduled session are rejected with `ALREADY_CHECKED_IN`.
+- **Manual Fallback:** Authorized staff can perform search check-ins by AP number if camera scanning fails, with full audit trail logging.
 
-### 4. Slot Retention & Inactivity Policy
-- **Minimum Frequency**: Students must maintain regular weekly workout sessions.
-- **Automatic Revocation Rule**: If a student is consecutively absent for **4 weeks in a row**, their gym slot is automatically marked as **Terminated/Revoked**.
-- **Slot Recirculation**: Revoked slots are released back to the general pool or allocated to waitlisted students.
+### 6. Configurable Absence Monitoring & Lifecycle
+- **Customizable Policies:** The Sports Department configures absence frequency requirements, warning thresholds, and termination triggers.
+- **Scheduled Automated Audits:** Background cron workers evaluate attendance, generate absence warnings, and flag termination candidates.
+- **Capacity Reclamation:** Terminated allocations automatically release capacity back to the available pool.
+- **Exemptions & Corrections:** Administrative overrides for medical leaves, university sports events, or campus closures.
 
----
-
-## 🔄 How It Works (Workflow)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Student
-    actor Admin
-    participant App as Web Portal
-    participant Server as Backend API & DB
-
-    Student->>App: Login via College Email (@college.edu)
-    App-->>Student: Display Dashboard & Dynamic QR Code
-    Note over Student,App: QR contains AP No, Email, Date & Token
-
-    Student->>Admin: Present QR code at Gym Entrance
-    Admin->>App: Scan QR with Admin Scanner
-    App->>Server: POST /api/attendance/scan (Payload + Hash)
-    Server->>Server: Verify Active Slot & Prevent Duplicate Check-in
-    Server-->>App: Attendance Logged Successfully
-    App-->>Admin: Show Confirmation (Student Name & Photo)
-
-    Note over Server: Nightly Cron Job Checks Weekly Frequency
-    Server->>Server: If absent for 4 consecutive weeks -> Terminate Slot
-```
+### 7. Bulk Data Import & Audit Trail
+- **CSV / Excel Roster Import:** Bulk upload for student rosters and master allocations with column validation, error preview, and confirmation gates.
+- **Immutable Audit Logging:** Every allocation change, manual attendance correction, capacity edit, and policy adjustment is logged with actor ID, timestamp, and before/after state.
 
 ---
 
 ## 🏗️ System Architecture
 
 ```mermaid
-flowchart TD
-    subgraph Client ["Client Layer"]
-        S_UI["Student Web App<br/>(Dashboard & Dynamic QR)"]
-        A_UI["Admin Web App<br/>(Scanner & Slot Roster)"]
+flowchart TB
+    subgraph Clients ["Client Layer"]
+        StudentApp["📱 Student Portal<br/>(Dashboard, Slot Transfer, QR Code)"]
+        StaffApp["📷 Staff Scanner<br/>(Camera Scanner, Photo Verification)"]
+        AdminApp["💻 Sports Admin Portal<br/>(Allocations, Approvals, Reports)"]
     end
 
-    subgraph Auth ["Authentication"]
-        OAuth["College Google Workspace / SSO<br/>(Domain Validation: @college.edu)"]
+    subgraph AuthLayer ["Authentication & Gateway"]
+        GoogleOAuth["🔐 Google OAuth 2.0 / OIDC<br/>(@srmap.edu.in Domain Enforcement)"]
+        APIGateway["🛡️ Express / Fastify API Gateway<br/>(JWT / Session Auth + RBAC Middleware)"]
     end
 
-    subgraph Backend ["Backend API Service"]
-        API["REST / GraphQL API"]
-        QR_Engine["QR Verification & Hash Engine"]
-        Attendance_Svc["Attendance Tracker"]
-        Cron["Weekly Policy Evaluator<br/>(Cron Job for 4-Week Inactivity)"]
+    subgraph ServiceLayer ["Core Application Services"]
+        SlotSvc["🎯 Slot & Capacity Service<br/>(Atomic Allocation Engine)"]
+        TransferSvc["🔄 Transfer Request Service<br/>(Approval & Swap Logic)"]
+        QRSvc["📲 QR & Verification Engine<br/>(Payload Generator & Validator)"]
+        AttendanceSvc["⏱️ Attendance Service<br/>(Duplicate Guard & Manual Check-in)"]
+        AbsenceSvc["📉 Absence Policy Engine<br/>(Audit Workers & Retention Rules)"]
+        ImportSvc["📁 CSV / Excel Import Engine<br/>(Validation & Pre-commit Preview)"]
     end
 
-    subgraph Storage ["Database Layer"]
-        DB[("PostgreSQL / MongoDB")]
+    subgraph DataLayer ["Data & Storage Layer"]
+        Postgres[("🐘 PostgreSQL Relational DB<br/>(ACID Transactions, Foreign Keys)")]
+        RedisCache[("⚡ Redis Cache<br/>(Session Store & Lock Coordinator)")]
     end
 
-    S_UI -->|Authenticate| OAuth
-    A_UI -->|Authenticate| OAuth
-    OAuth -->|Token / Session| API
+    StudentApp -->|Google Sign-In| GoogleOAuth
+    StaffApp -->|Google Sign-In| GoogleOAuth
+    AdminApp -->|Google Sign-In| GoogleOAuth
+    GoogleOAuth --> APIGateway
 
-    S_UI -->|Request QR / View Stats| API
-    A_UI -->|Send Scanned QR Payload| API
+    StudentApp -->|REST API v1| APIGateway
+    StaffApp -->|REST API v1| APIGateway
+    AdminApp -->|REST API v1| APIGateway
 
-    API --> QR_Engine
-    API --> Attendance_Svc
-    Cron --> Attendance_Svc
-    Attendance_Svc --> DB
+    APIGateway --> SlotSvc
+    APIGateway --> TransferSvc
+    APIGateway --> QRSvc
+    APIGateway --> AttendanceSvc
+    APIGateway --> AbsenceSvc
+    APIGateway --> ImportSvc
+
+    SlotSvc --> Postgres
+    TransferSvc --> Postgres
+    AttendanceSvc --> Postgres
+    AbsenceSvc --> Postgres
+    ImportSvc --> Postgres
+
+    SlotSvc -.-> RedisCache
 ```
 
 ---
 
-## 💻 Recommended Tech Stack
+## 🔄 Workflows & Sequence Diagrams
 
-| Component | Technology | Rationale |
-| :--- | :--- | :--- |
-| **Frontend** | React / Next.js / Vite | Fast, responsive UI with support for camera scanner and SVG QR generation |
-| **Styling** | Vanilla CSS / Tailwind CSS | Clean, modern dashboard interface |
-| **Backend** | Node.js (Express / NestJS) or Python (FastAPI) | High-performance API endpoints for scanning and cron workers |
-| **Database** | PostgreSQL / Prisma ORM | Relational integrity for students, slots, and timestamped attendance logs |
-| **Authentication**| NextAuth / Passport.js / Google OAuth 2.0 | Enforces college domain restriction (`hd=college.edu`) |
-| **QR Code Engine**| `qrcode.react` & `html5-qrcode` | Client-side QR rendering and browser-based camera scanning |
-| **Job Scheduler** | Node-Cron / BullMQ / Celery | Scheduled weekly evaluations for inactivity checks and slot terminations |
+### Attendance Verification Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student
+    actor Staff as Gym Staff
+    participant Client as Staff Scanner App
+    participant Server as Backend API (/api/v1)
+    participant DB as Database
+
+    Student->>Student: Open GymSlot & Generate Dynamic QR
+    Student->>Staff: Present QR at Gym Desk
+    Staff->>Client: Scan QR with In-App Camera
+    Client->>Server: POST /api/v1/staff/attendance/scan (Payload)
+    
+    Server->>DB: Query Student, Active Allocation & Scheduled Session
+    alt Student Not Found / Invalid Domain
+        Server-->>Client: 400 Bad Request (STUDENT_NOT_FOUND)
+    else Wrong Gym or Slot Timing
+        Server-->>Client: 403 Forbidden (WRONG_GYM_OR_SLOT)
+    else Already Checked In for Session
+        Server-->>Client: 409 Conflict (ALREADY_CHECKED_IN)
+    else Valid Check-In
+        Server->>DB: Insert Attendance Record & Commit
+        Server-->>Client: 200 OK + Student Profile Photo & Details
+        Client-->>Staff: Display "Verified" + Photo Confirmation
+        Staff-->>Student: Grant Gym Access
+    end
+```
+
+### Slot Transfer Request Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Student
+    actor Admin as Sports Admin
+    participant Server as Backend API (/api/v1)
+    participant DB as Database
+
+    Student->>Server: POST /api/v1/student/slot-change-requests (requested_slot_id)
+    Server->>DB: Check Eligibility & Existing Allocation
+    Note over DB: Student's Current Allocation Remains ACTIVE
+    Server->>DB: Insert slot_change_requests (status: PENDING)
+    Server-->>Student: Transfer Request Submitted Successfully
+
+    Admin->>Server: GET /api/v1/admin/slot-change-requests
+    Server-->>Admin: List Pending Transfer Requests
+    Admin->>Server: POST /api/v1/admin/slot-change-requests/:id/approve
+    
+    critical Atomic Slot Swap
+        Server->>DB: Check Requested Slot Capacity
+        Server->>DB: Update Old Allocation (status: TRANSFERRED, end_date: NOW)
+        Server->>DB: Insert New Allocation (status: ACTIVE)
+        Server->>DB: Update Request (status: APPROVED)
+    end
+    
+    Server-->>Admin: Transfer Completed
+    Server-->>Student: In-App Notification: Slot Change Approved!
+```
 
 ---
 
 ## 🗄️ Database Schema (Core Entities)
 
-### 1. `users`
-- `id`: UUID (Primary Key)
-- `email`: String (Unique, restricted to college domain)
-- `ap_number`: String (Unique student ID)
-- `name`: String
-- `role`: Enum (`STUDENT`, `ADMIN`, `GYM_STAFF`)
-- `created_at`: Timestamp
+The database schema is designed for PostgreSQL with ACID guarantees and complete referential integrity.
 
-### 2. `gym_slots`
-- `id`: UUID (Primary Key)
-- `user_id`: Foreign Key (`users.id`)
-- `slot_timing`: String (e.g., `"06:00 - 07:00 AM"`)
-- `status`: Enum (`ACTIVE`, `WARNING`, `TERMINATED`)
-- `allocated_at`: Timestamp
-- `terminated_at`: Timestamp (Nullable)
-- `termination_reason`: String (Nullable)
+```mermaid
+erDiagram
+    users ||--o{ students : "profile"
+    students ||--o{ allocations : "has"
+    gyms ||--o{ gym_slots : "contains"
+    gym_slots ||--o{ allocations : "allocated_to"
+    gym_slots ||--o{ attendance_sessions : "schedules"
+    attendance_sessions ||--o{ attendance : "records"
+    students ||--o{ attendance : "logs"
+    allocations ||--o{ slot_change_requests : "current"
+    gym_slots ||--o{ slot_change_requests : "requested"
+    students ||--o{ applications : "applies"
+    users ||--o{ audit_logs : "performed_by"
 
-### 3. `attendance_logs`
-- `id`: UUID (Primary Key)
-- `student_id`: Foreign Key (`users.id`)
-- `check_in_time`: Timestamp
-- `verified_by`: Foreign Key (`users.id` - Admin/Staff)
-- `date`: Date (Unique per student per day)
+    users {
+        uuid id PK
+        string email UK
+        enum role "STUDENT, GYM_STAFF, SPORTS_ADMIN, SYSTEM_ADMIN"
+        boolean is_active
+        timestamp created_at
+    }
 
-### 4. `weekly_summaries`
-- `id`: UUID (Primary Key)
-- `student_id`: Foreign Key (`users.id`)
-- `week_number`: Integer
-- `year`: Integer
-- `days_attended`: Integer
-- `is_absent`: Boolean
+    students {
+        uuid id PK
+        uuid user_id FK
+        string ap_number UK
+        string full_name
+        string department
+        int academic_year
+        string photo_url
+        boolean is_eligible
+    }
+
+    gyms {
+        uuid id PK
+        string name "C. V. Raman, Ganga, etc."
+        string location
+        string eligibility_group
+        boolean is_active
+    }
+
+    gym_slots {
+        uuid id PK
+        uuid gym_id FK
+        time start_time
+        time end_time
+        int capacity
+        boolean is_active
+    }
+
+    allocations {
+        uuid id PK
+        uuid student_id FK
+        uuid slot_id FK
+        enum status "ACTIVE, TRANSFERRED, TERMINATED, EXPIRED"
+        timestamp start_date
+        timestamp end_date
+    }
+
+    slot_change_requests {
+        uuid id PK
+        uuid student_id FK
+        uuid current_allocation_id FK
+        uuid requested_slot_id FK
+        enum status "PENDING, APPROVED, REJECTED, WITHDRAWN"
+        string reason
+        uuid reviewed_by FK
+        timestamp reviewed_at
+    }
+
+    attendance_sessions {
+        uuid id PK
+        uuid slot_id FK
+        date session_date
+        boolean is_cancelled
+    }
+
+    attendance {
+        uuid id PK
+        uuid student_id FK
+        uuid session_id FK
+        timestamp check_in_time
+        enum method "QR_SCAN, MANUAL_FALLBACK"
+        uuid staff_id FK
+    }
+
+    audit_logs {
+        uuid id PK
+        uuid actor_id FK
+        string action
+        string target_type
+        uuid target_id
+        jsonb before_state
+        jsonb after_state
+        timestamp created_at
+    }
+```
+
+---
+
+## 📡 REST API Specification (`/api/v1`)
+
+### 1. Authentication & Session (`/auth`)
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/auth/google` | Initiates Google OAuth 2.0 flow | Public |
+| `GET` | `/api/v1/auth/google/callback` | Exchanges code, verifies domain & sets session | Public |
+| `GET` | `/api/v1/auth/me` | Returns current authenticated user and role | Authenticated |
+| `POST` | `/api/v1/auth/logout` | Revokes session / cookie | Authenticated |
+
+### 2. Student Portal (`/student`)
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/student/profile` | Student profile and academic year info | Student |
+| `GET` | `/api/v1/student/dashboard` | Active allocation, alerts, and registration status | Student |
+| `GET` | `/api/v1/student/qr-code` | Returns current dynamic session QR payload | Student |
+| `GET` | `/api/v1/student/attendance` | Full attendance history logs | Student |
+| `GET` | `/api/v1/student/attendance/stats` | Weekly frequency, streaks, and absence warnings | Student |
+| `GET` | `/api/v1/student/available-slots` | Eligible available gym slots with remaining seats | Student |
+| `POST` | `/api/v1/student/applications` | Submit application for a new slot | Student |
+| `POST` | `/api/v1/student/slot-change-requests` | Submit request to switch gym slot | Student |
+| `GET` | `/api/v1/student/slot-change-requests` | Check status of pending/past transfer requests | Student |
+| `GET` | `/api/v1/student/notifications` | View in-app notifications | Student |
+
+### 3. Staff Scanner (`/staff`)
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/staff/attendance/scan` | Validates QR payload and marks attendance | Staff / Admin |
+| `POST` | `/api/v1/staff/attendance/manual-check-in` | Manual check-in by AP number with audit | Staff / Admin |
+| `GET` | `/api/v1/staff/sessions` | Fetch scheduled sessions for assigned gym | Staff / Admin |
+| `GET` | `/api/v1/staff/attendance` | Live attendance list for active slot session | Staff / Admin |
+
+### 4. Sports Administrator (`/admin`)
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `GET/POST`| `/api/v1/admin/gyms` | List & configure gyms | Sports Admin |
+| `GET/POST`| `/api/v1/admin/slots` | List & configure slot timings and capacities | Sports Admin |
+| `GET/POST`| `/api/v1/admin/registration-windows` | Manage registration open/close windows | Sports Admin |
+| `GET/PUT` | `/api/v1/admin/slot-change-requests` | Review, approve, or reject student transfer requests | Sports Admin |
+| `GET/POST`| `/api/v1/admin/allocations` | Manual allocation, transfer, or termination | Sports Admin |
+| `GET/PUT` | `/api/v1/admin/attendance` | Inspect and correct attendance records | Sports Admin |
+| `GET/POST`| `/api/v1/admin/absence-monitor` | Review at-risk students & process terminations | Sports Admin |
+| `POST` | `/api/v1/admin/imports` | Bulk upload CSV/Excel student rosters with preview | Sports Admin |
+| `GET` | `/api/v1/admin/reports` | Export CSV/Excel analytics and compliance reports | Sports Admin |
+| `GET` | `/api/v1/admin/audit-logs` | Query append-only audit trail | Sports Admin |
+
+---
+
+## 💻 Tech Stack
+
+| Layer | Technology | Rationale |
+| :--- | :--- | :--- |
+| **Frontend** | React / Next.js / Vite | Highly responsive UI with fast client-side routing |
+| **Styling** | Vanilla CSS / Tailored CSS Variables | Sleek, modern dark/light themes with zero bloated runtime |
+| **Backend API** | Node.js (Express / Fastify) | High-performance asynchronous API endpoints |
+| **Database** | PostgreSQL | ACID compliance, strict foreign key constraints, and transactional consistency |
+| **ORM / Query** | Prisma / Drizzle | Type-safe migrations and schema management |
+| **Authentication** | Google OAuth 2.0 / Passport.js / NextAuth | University Google Workspace domain restriction (`srmap.edu.in`) |
+| **QR Engine** | `qrcode.react` & `html5-qrcode` | Vector QR rendering and fast in-browser camera scanning |
+| **Task Scheduler**| Node-Cron / BullMQ | Scheduled jobs for absence monitoring and session pre-generation |
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js (v18.x or later)
-- PostgreSQL or MongoDB instance
-- Google Cloud Console Project (for College Domain Google OAuth)
+- **Node.js** (v18.x or v20.x LTS)
+- **PostgreSQL** (v14 or higher)
+- **Google Cloud Console Project** with OAuth 2.0 credentials enabled for Web Applications.
 
-### Environment Variables
+### Environment Configuration
+
 Create a `.env` file in the root directory:
 
 ```env
-# Application
+# Server Configuration
 PORT=5000
 NODE_ENV=development
+API_PREFIX=/api/v1
 CLIENT_URL=http://localhost:3000
 
 # Database
-DATABASE_URL="postgresql://user:password@localhost:5432/gym_allocation"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/gymslot_db?schema=public"
 
-# Auth / Google OAuth (Restricted Domain)
-ALLOWED_EMAIL_DOMAIN="college.edu"
-GOOGLE_CLIENT_ID="your-google-client-id"
+# Google OAuth 2.0
+GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
 GOOGLE_CLIENT_SECRET="your-google-client-secret"
-JWT_SECRET="your-secure-jwt-secret"
+GOOGLE_CALLBACK_URL="http://localhost:5000/api/v1/auth/google/callback"
+ALLOWED_EMAIL_DOMAINS="srmap.edu.in"
 
-# Anti-Proxy QR Secret
-QR_SIGNING_SECRET="secure-qr-hmac-secret"
-QR_EXPIRY_SECONDS=60
+# Session & JWT
+JWT_SECRET="super-secret-jwt-signing-key"
+SESSION_SECRET="super-secret-session-key"
+
+# Timezone
+TZ="Asia/Kolkata"
 ```
 
 ### Installation & Setup
 
-1. **Clone the repository**
+1. **Clone the Repository**
    ```bash
    git clone https://github.com/krishhh1089/Gym-allocation.git
    cd Gym-allocation
    ```
 
-2. **Install dependencies**
+2. **Install Dependencies**
    ```bash
    npm install
    ```
 
-3. **Configure Database & Migrations**
+3. **Run Database Migrations**
    ```bash
    npx prisma migrate dev --name init
    ```
 
-4. **Start Development Server**
+4. **Seed Initial Gyms & Admin (Optional)**
+   ```bash
+   npm run seed
+   ```
+
+5. **Start Development Server**
    ```bash
    npm run dev
    ```
 
 ---
 
-## 📡 API Overview
+## 🛡️ Edge Cases & System Handling
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/google` | Public | Authenticates student/admin with college email |
-| `GET` | `/api/student/dashboard` | Student | Fetches weekly frequency, slot status, and profile |
-| `GET` | `/api/student/qr` | Student | Generates signed, time-validated QR payload |
-| `GET` | `/api/admin/slots` | Admin | Fetches list of allocated gym slots & status |
-| `POST` | `/api/admin/scan` | Admin | Validates scanned QR and records attendance |
-| `POST` | `/api/cron/evaluate-inactivity` | System/Cron | Runs weekly audit; revokes slots inactive for 4 consecutive weeks |
-
----
-
-## 🗺️ Roadmap
-
-- [ ] Dynamic QR code refresh every 30 seconds to block forwarded screenshots.
-- [ ] Email warning alerts sent after 2 and 3 consecutive weeks of absence.
-- [ ] Automated waitlist promotion upon slot termination.
-- [ ] Peak-hour gym occupancy graphs & analytics for administrators.
-- [ ] Offline scanning queue sync for spotty gym basement network coverage.
+| Scenario | System Behavior |
+| :--- | :--- |
+| **Student applies for transfer while one is pending** | Submission blocked; system informs student of active pending request. |
+| **Target slot fills up before transfer approval** | Approval transaction fails safely; administrator is notified of zero seats and student allocation remains intact. |
+| **Simultaneous applicants for 1 remaining seat** | Relational serializable isolation assigns seat to first commit; second receives clean "Slot Full" notification. |
+| **QR code scanned for wrong gym or time** | Scanner rejects with `WRONG_GYM_OR_SLOT`, highlighting student's actual assigned gym & slot. |
+| **Duplicate check-in attempts** | Scanner rejects with `ALREADY_CHECKED_IN` displaying exact earlier check-in timestamp. |
+| **Camera permission denied on staff device** | Staff seamlessly switches to authorized manual AP Number search with audit logging. |
+| **Gym closed or campus holiday declared** | Session marked `CANCELLED`; absence evaluator exempts that date from attendance calculations. |
 
 ---
 
-## 🤝 Contributing
+## 🗺️ Development Roadmap
 
-Contributions are welcome! Please follow these steps:
-1. Fork the repository.
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`).
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4. Push to the branch (`git push origin feature/AmazingFeature`).
-5. Open a Pull Request.
+- [x] **Product Requirements Document v2.0** (`REQUIREMENTS.md`)
+- [ ] **Phase 1: Foundation & Auth**
+  - [ ] PostgreSQL Schema & Migrations
+  - [ ] Google OAuth 2.0 with `@srmap.edu.in` domain validation
+  - [ ] RBAC Middleware (Student, Staff, Sports Admin, System Admin)
+- [ ] **Phase 2: Student Portal & Transfer Requests**
+  - [ ] Student dashboard & available slot search
+  - [ ] Registration window enforcement
+  - [ ] Change Gym Slot transfer request engine (Option A & B)
+- [ ] **Phase 3: QR Attendance & Desk Scanner**
+  - [ ] Dynamic QR payload generation
+  - [ ] Mobile camera scanner integration (`html5-qrcode`)
+  - [ ] Server-side validation & duplicate prevention
+  - [ ] Manual fallback by AP number
+- [ ] **Phase 4: Absence Monitoring & Retention**
+  - [ ] Configurable absence policy engine
+  - [ ] Idempotent cron jobs for warning & termination
+  - [ ] Automatic capacity reclamation
+- [ ] **Phase 5: Administration & Pilot**
+  - [ ] Bulk CSV roster import with pre-commit preview
+  - [ ] Sports admin analytics & CSV/Excel export
+  - [ ] Audit logs and in-app notifications
+  - [ ] SRM University-AP Sports Department pilot deployment
 
 ---
 
