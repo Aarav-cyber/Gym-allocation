@@ -1,6 +1,8 @@
 alembic
-fastapi
-psycopg
+asyncpg
+fastapi[standard]
 pydantic-settings
-sqlalchemy
-uvicorn
+python-jose[cryptography]
+httpx
+sqlalchemy[asyncio]
+uvicorn[standard]
