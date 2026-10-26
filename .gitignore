@@ -27,3 +27,7 @@ htmlcov/
 node_modules/
 .next/
 dist/
+
+#frontend
+.taste-skill
+.agents

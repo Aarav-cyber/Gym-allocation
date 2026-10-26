@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GymSlot · SRM University-AP Sports Department</title>
+  <meta name="description" content="Official gym slot allocation, digital cards, and turnstile check-in portal for SRM University-AP campus sports facilities.">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <header class="masthead wrap ad-enter">
+    <div class="masthead-left">
+      <span class="uni-mark">SRM University-AP</span>
+    </div>
+    <div class="masthead-center">
+      <span class="dept-title">Sports Department · Gym Allocation Portal</span>
+    </div>
+    <div class="masthead-right">
+      <a href="#portal-entry" class="link-nav">Student Access</a>
+    </div>
+  </header>
+
+  <main>
+    <!-- HERO: Tabbed Folder Stack Blueprint -->
+    <section class="hero-section wrap" id="top">
+      <div class="hero-header">
+        <h1 class="hero-title ad-enter">GymSlot</h1>
+        <p class="hero-lead ad-enter">
+          Official gym slot allocation, digital cards, and turnstile check-in for SRM University-AP campus facilities.
+        </p>
+      </div>
+
+      <!-- Tabbed Folder Container -->
+      <div class="folder-container ad-enter" aria-label="Campus Gym Facilities">
+        
+        <!-- Tab Navigation along top edge -->
+        <div class="folder-tabs-bar" role="tablist">
+          <button class="folder-tab-btn active" role="tab" aria-selected="true" data-folder="cvraman">
+            <span>C. V. Raman</span>
+          </button>
+          <button class="folder-tab-btn" role="tab" aria-selected="false" data-folder="ganga">
+            <span>Ganga</span>
+          </button>
+          <button class="folder-tab-btn" role="tab" aria-selected="false" data-folder="krishna">
+            <span>Krishna</span>
+          </button>
+          <button class="folder-tab-btn" role="tab" aria-selected="false" data-folder="narmada">
+            <span>Narmada</span>
+          </button>
+        </div>
+
+        <!-- Single active folder body (no covered text) -->
+        <div class="active-folder-body" id="activeFolderBody">
+          <div class="folder-details">
+            <h2 class="folder-name" id="folderName">C. V. Raman Central Complex</h2>
+            <p class="folder-desc" id="folderDesc">
+              120 session capacity. Olympic barbells, squat cages, cardio deck, and conditioning zones for all enrolled students.
+            </p>
+          </div>
+          <div class="folder-actions">
+            <a href="#portal-entry" class="button btn-folder-action">Continue with SRM-AP Google Account</a>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- SHOWCASE: Square Plate, Spare Text (The Live Thing) -->
+    <section class="section wrap showcase-section" id="simulator">
+      <div class="showcase-grid">
+        
+        <!-- Left: The Digital Gym Card Object (data-ui software fragment) -->
+        <div class="card-stage ad-enter">
+          <div class="digital-gym-card" id="digitalCard" data-ui>
+            <div class="card-top-rule">
+              <span class="card-uni">SRM University-AP</span>
+              <span class="card-badge-status" id="cardStatusBadge">Turnstile Valid</span>
+            </div>
+
+            <div class="card-body">
+              <div class="card-photo-box">
+                <img src="assets/fit-young-man-doing-deadlift-exercise-in.jpg" width="400" height="400" alt="Official verified university student identity photograph" class="card-student-photo" id="cardPhoto">
+                <div class="card-photo-caption">Official Photo Verified</div>
+              </div>
+
+              <div class="card-meta">
+                <div class="card-name" id="cardStudentName">Aarav Raj</div>
+                <div class="card-row">
+                  <span class="card-label">AP Number</span>
+                  <span class="card-value nums" id="cardApNumber">AP21110010123</span>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Assigned Gym</span>
+                  <span class="card-value" id="cardGymName">C. V. Raman Gym</span>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Slot Timing</span>
+                  <span class="card-value nums" id="cardSlotTiming">17:45 – 18:45</span>
+                </div>
+                <div class="card-row">
+                  <span class="card-label">Session Date</span>
+                  <span class="card-value nums" id="cardSessionDate">2026-10-27</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Dynamic QR Code Container -->
+            <div class="card-qr-section">
+              <div class="qr-visual-box">
+                <svg class="qr-code-svg" viewBox="0 0 100 100" width="100" height="100" aria-label="Dynamic short-lived turnstile QR token">
+                  <rect width="100" height="100" fill="#e8e5e0"/>
+                  <rect x="6" y="6" width="26" height="26" fill="#222120"/>
+                  <rect x="11" y="11" width="16" height="16" fill="#e8e5e0"/>
+                  <rect x="15" y="15" width="8" height="8" fill="#222120"/>
+                  <rect x="68" y="6" width="26" height="26" fill="#222120"/>
+                  <rect x="73" y="11" width="16" height="16" fill="#e8e5e0"/>
+                  <rect x="77" y="15" width="8" height="8" fill="#222120"/>
+                  <rect x="6" y="68" width="26" height="26" fill="#222120"/>
+                  <rect x="11" y="73" width="16" height="16" fill="#e8e5e0"/>
+                  <rect x="15" y="77" width="8" height="8" fill="#222120"/>
+                  <g id="qrMatrixGroup" fill="#222120">
+                    <rect x="38" y="8" width="6" height="6"/>
+                    <rect x="52" y="14" width="6" height="6"/>
+                    <rect x="42" y="24" width="6" height="6"/>
+                    <rect x="56" y="32" width="6" height="6"/>
+                    <rect x="10" y="42" width="6" height="6"/>
+                    <rect x="24" y="46" width="6" height="6"/>
+                    <rect x="36" y="42" width="6" height="6"/>
+                    <rect x="50" y="46" width="6" height="6"/>
+                    <rect x="64" y="42" width="6" height="6"/>
+                    <rect x="78" y="46" width="6" height="6"/>
+                    <rect x="90" y="42" width="6" height="6"/>
+                    <rect x="38" y="60" width="6" height="6"/>
+                    <rect x="54" y="64" width="6" height="6"/>
+                    <rect x="70" y="60" width="6" height="6"/>
+                    <rect x="84" y="64" width="6" height="6"/>
+                    <rect x="42" y="76" width="6" height="6"/>
+                    <rect x="58" y="82" width="6" height="6"/>
+                    <rect x="76" y="76" width="6" height="6"/>
+                    <rect x="88" y="86" width="6" height="6"/>
+                  </g>
+                </svg>
+              </div>
+              <div class="qr-token-info">
+                <span class="qr-hash-label">Session Token Rotates</span>
+                <span class="qr-hash-code nums" id="qrTokenDisplay">#tok-srm-9e4a8b-1745</span>
+                <span class="qr-timer-note" id="qrRefreshTimer">Refreshed: Valid for current scheduled session</span>
+              </div>
+            </div>
+
+            <div class="card-footer-notice">
+              <span>SRM-AP Sports Registry · Physical attendance verified at desk</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Real-time Slot Registry & Simulator Controls -->
+        <div class="simulator-controls ad-enter">
+          <div class="facility-tabs" role="tablist" aria-label="Select Facility">
+            <button class="fac-tab active" role="tab" aria-selected="true" data-facility="cvraman">C. V. Raman</button>
+            <button class="fac-tab" role="tab" aria-selected="false" data-facility="ganga">Ganga</button>
+            <button class="fac-tab" role="tab" aria-selected="false" data-facility="krishna">Krishna</button>
+            <button class="fac-tab" role="tab" aria-selected="false" data-facility="narmada">Narmada</button>
+          </div>
+
+          <div class="sim-content">
+            <h2 class="head sim-title" id="simTitle">Live Slot Availability</h2>
+            <p class="sim-desc" id="simDesc">
+              Explore available morning and evening slots. Switch facilities to inspect live capacity, waitlist queues, and instant transfer requests.
+            </p>
+
+            <!-- Time Slots Grid -->
+            <div class="slot-picker" id="slotPicker">
+              <button class="slot-pill active" data-time="06:00 – 07:00" data-seats="8" data-cap="120" data-status="Available">
+                <span class="slot-hour nums">06:00 – 07:00</span>
+                <span class="slot-avail nums">8 seats free</span>
+              </button>
+              <button class="slot-pill" data-time="07:15 – 08:15" data-seats="2" data-cap="120" data-status="Available">
+                <span class="slot-hour nums">07:15 – 08:15</span>
+                <span class="slot-avail nums">2 seats free</span>
+              </button>
+              <button class="slot-pill" data-time="16:30 – 17:30" data-seats="0" data-cap="120" data-status="Waitlist Open">
+                <span class="slot-hour nums">16:30 – 17:30</span>
+                <span class="slot-avail slot-full">Waitlist (3 queue)</span>
+              </button>
+              <button class="slot-pill" data-time="17:45 – 18:45" data-seats="14" data-cap="120" data-status="Available">
+                <span class="slot-hour nums">17:45 – 18:45</span>
+                <span class="slot-avail nums">14 seats free</span>
+              </button>
+              <button class="slot-pill" data-time="19:00 – 20:00" data-seats="5" data-cap="120" data-status="Available">
+                <span class="slot-hour nums">19:00 – 20:00</span>
+                <span class="slot-avail nums">5 seats free</span>
+              </button>
+            </div>
+
+            <!-- Capacity Status Bar -->
+            <div class="capacity-meter-box">
+              <div class="capacity-labels">
+                <span class="cap-metric nums" id="capNumbers">106 / 120 Allocated</span>
+                <span class="cap-status" id="capStatus">Open Registration</span>
+              </div>
+              <div class="capacity-track">
+                <div class="capacity-fill" id="capacityFill" style="width: 88%;"></div>
+              </div>
+            </div>
+
+            <!-- Transfer Rule Live Note -->
+            <div class="transfer-guarantee-box" id="transferAlert">
+              <span class="guarantee-bold">Protected Transfer Guarantee:</span>
+              <span>When requesting a slot transfer, your current allocation remains 100% active until sports administration confirms destination capacity.</span>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="sim-actions">
+              <button class="button sim-action-btn primary-action" id="btnApplySlot">Select This Slot</button>
+              <button class="button sim-action-btn secondary-action" id="btnRequestTransfer">Request Slot Change</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS: Itinerary on a Slip Blueprint -->
+    <section class="section wrap how-it-works-section" id="itinerary">
+      <div class="itinerary-grid">
+        
+        <!-- Left: Heading & Context -->
+        <div class="itinerary-left ad-enter">
+          <h2 class="head section-heading">The Campus Access Itinerary</h2>
+          <p class="lead itinerary-summary">
+            A structured, audit-logged process designed for SRM University-AP sports facilities to guarantee fair access, eliminate proxy check-ins, and keep gym capacity fully utilized.
+          </p>
+          <div class="itinerary-stats-row">
+            <div class="stat-cell">
+              <span class="stat-number nums">4</span>
+              <span class="stat-caption">Active Gym Facilities</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-number nums">320</span>
+              <span class="stat-caption">Daily Session Seats</span>
+            </div>
+            <div class="stat-cell">
+              <span class="stat-number nums">100%</span>
+              <span class="stat-caption">Zero-Proxy Verification</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Paper Itinerary Slip with Perforated Zigzag Edge -->
+        <div class="itinerary-right ad-enter">
+          <div class="paper-slip">
+            <div class="slip-header">
+              <span class="slip-doc-id nums">SRMAP-GYM-PROC-2026</span>
+              <span class="slip-badge">Official Procedure</span>
+            </div>
+
+            <div class="slip-group">
+              <div class="slip-group-title">Stage 1 · Single Sign-On & Verification</div>
+              <div class="slip-row">
+                <span class="slip-task">Institutional Google OAuth</span>
+                <span class="slip-dots"></span>
+                <span class="slip-detail nums">Instant</span>
+              </div>
+              <div class="slip-row">
+                <span class="slip-task">Student AP Registry Matching</span>
+                <span class="slip-dots"></span>
+                <span class="slip-detail nums">Automatic</span>
+              </div>
+            </div>
+
+            <div class="slip-group">
+              <div class="slip-group-title">Stage 2 · Slot Allocation & Fair Queues</div>
+              <div class="slip-row">
+                <span class="slip-task">Registration Window Open Access</span>
+                <span class="slip-dots"></span>
+                <span class="slip-detail nums">FCFS Rules</span>
+              </div>
+              <div class="slip-row">
+                <span class="slip-task">Server Timestamped Queue Entry</span>
+                <span class="slip-dots"></span>
+                <span class="slip-detail nums">Deterministic</span>
+              </div>
+            </div>
+
+            <div class="slip-group">
+              <div class="slip-group-title">Stage 3 · Turnstile Desk Check-In</div>
+              <div class="slip-row">
+                <span class="slip-task">Digital Card Dynamic Opaque QR</span>
+                <span class="slip-dots"></span>
+                <span class="slip-detail nums">Fast Scan</span>
+              </div>
+              <div class="slip-row">
+                <span class="slip-task">Trainer Visual Photo Confirmation</span>
+                <span class="slip-dots"></span>
+                <span class="slip-detail nums">Mandatory</span>
+              </div>
+              <div class="slip-row">
+                <span class="slip-task">Authorized Fallback Search</span>
+                <span class="slip-dots"></span>
+                <span class="slip-detail nums">Audited</span>
+              </div>
+            </div>
+
+            <div class="slip-group">
+              <div class="slip-group-title">Stage 4 · Retention & Reclamation</div>
+              <div class="slip-row">
+                <span class="slip-task">Weekly Frequency Audit</span>
+                <span class="slip-dots"></span>
+                <span class="slip-detail nums">Sunday 23:59</span>
+              </div>
+              <div class="slip-row">
+                <span class="slip-task">Absence Warning Alerts</span>
+                <span class="slip-dots"></span>
+                <span class="slip-detail nums">In-App Alert</span>
+              </div>
+              <div class="slip-row">
+                <span class="slip-task">Automated Waitlist Promotion</span>
+                <span class="slip-dots"></span>
+                <span class="slip-detail nums">Transactional</span>
+              </div>
+            </div>
+
+            <!-- Inverted Final Summary Bar -->
+            <div class="slip-footer-bar">
+              <span>Result: Verified campus access, zero proxy entries, and active capacity reclamation.</span>
+            </div>
+            
+            <!-- Cut-out zigzag edge simulation -->
+            <div class="slip-zigzag-bottom"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- FEATURES: Foundational Safeguards -->
+    <section class="section wrap features-section" id="capabilities">
+      <div class="features-intro ad-enter">
+        <h2 class="head section-heading">Four Foundational Safeguards</h2>
+        <p class="lead">Built to protect student rights, ensure safety, and run university fitness facilities with zero attendance disputes.</p>
+      </div>
+
+      <div class="stacking-container" aria-label="System Capabilities">
+        
+        <!-- Sheet 1: Zero-Proxy Check-In -->
+        <article class="stack-sheet sheet-1 ad-enter">
+          <div class="sheet-bar">
+            <h3 class="sheet-title">Zero-Proxy Check-In</h3>
+          </div>
+          <div class="sheet-content">
+            <div class="sheet-text">
+              <p>Attendance is never recorded via static screenshots, shared barcodes, or proxy roll-calls. Each student's digital card renders an encrypted, rotating token valid strictly for that day's scheduled session.</p>
+              <p>At the gym turnstile, gym trainers scan the code to inspect the student's official registered photograph and academic year, confirming physical identity before granting entry.</p>
+            </div>
+            <div class="sheet-media">
+              <img src="assets/young-attractive-man-athlete-doing-exercise-with.jpg" width="1200" height="800" alt="Student athlete exercising with barbell in clean university gym facility" loading="lazy">
+            </div>
+          </div>
+        </article>
+
+        <!-- Sheet 2: Protected Slot Transfers -->
+        <article class="stack-sheet sheet-2 ad-enter">
+          <div class="sheet-bar">
+            <h3 class="sheet-title">Protected Slot Transfers</h3>
+          </div>
+          <div class="sheet-content">
+            <div class="sheet-text">
+              <p>Timetable changed? Lab timing clashing with your evening workout? Apply for any available slot across C. V. Raman, Ganga, Krishna, or Narmada without forfeiting your active membership.</p>
+              <p>Under GymSlot's atomic transaction policy, your current slot remains fully active and usable until sports administration confirms the transfer destination.</p>
+            </div>
+            <div class="sheet-media">
+              <img src="assets/woman-doing-squat-workout-in-gym-with.jpg" width="1200" height="800" alt="Student doing squat workout in sports complex facility" loading="lazy">
+            </div>
+          </div>
+        </article>
+
+        <!-- Sheet 3: Fair FCFS Waitlists -->
+        <article class="stack-sheet sheet-3 ad-enter">
+          <div class="sheet-bar">
+            <h3 class="sheet-title">Fair FCFS Waitlists</h3>
+          </div>
+          <div class="sheet-content">
+            <div class="sheet-text">
+              <p>Every registration request is assigned an authoritative UTC timestamp by the server. When high-demand slots reach capacity, students join a deterministic first-come, first-served queue with live position tracking.</p>
+              <p>Serializable database isolation guarantees that a slot configured for 120 students never admits a 121st student, eliminating overcrowding at squat racks and bench presses.</p>
+            </div>
+            <div class="sheet-media">
+              <img src="assets/track-field-adidas-grand-prix-icahn-stadium.jpg" width="1200" height="800" alt="Athletic track and outdoor campus training stadium" loading="lazy">
+            </div>
+          </div>
+        </article>
+
+        <!-- Sheet 4: Absence Policy -->
+        <article class="stack-sheet sheet-4 ad-enter">
+          <div class="sheet-bar">
+            <h3 class="sheet-title">Absence Policy</h3>
+          </div>
+          <div class="sheet-content">
+            <div class="sheet-text">
+              <p>Gym slots are high-demand university resources. GymSlot automatically monitors weekly attendance frequency based on the Sports Department's approved absence policy.</p>
+              <p>Students approaching absence thresholds receive clear in-app alerts and email warnings. Prolonged inactivity reclaims the slot and instantly promotes the next waitlisted applicant.</p>
+            </div>
+            <div class="sheet-media">
+              <img src="assets/strong-woman-lifting-weights-in-a-gym.jpg" width="1200" height="800" alt="Determined student strength training in campus fitness center" loading="lazy">
+            </div>
+          </div>
+        </article>
+
+      </div>
+    </section>
+
+    <!-- PROOF: The Printed Guest List Blueprint -->
+    <section class="section wrap proof-section" id="roster">
+      <div class="proof-card-wrapper ad-enter">
+        <article class="printed-roster-card">
+          <h2 class="head roster-heading">Official Session Timetable</h2>
+          
+          <div class="roster-tipped-image">
+            <img src="assets/young-attractive-man-athlete-doing-exercise-with.jpg" width="1000" height="400" alt="Campus athletic complex strength floor overview" loading="lazy">
+          </div>
+
+          <p class="roster-subheading">
+            Daily slot schedule active for the current academic semester across all 4 SRM-AP complexes:
+          </p>
+
+          <div class="roster-schedule-grid">
+            <div class="roster-entry">
+              <span class="roster-session-name">Early Morning Session · Batch 1</span>
+              <span class="roster-dots"></span>
+              <span class="roster-time nums">06:00 – 07:00</span>
+              <span class="roster-badge nums">Cap: 120</span>
+            </div>
+            <div class="roster-entry">
+              <span class="roster-session-name">Morning Session · Batch 2</span>
+              <span class="roster-dots"></span>
+              <span class="roster-time nums">07:15 – 08:15</span>
+              <span class="roster-badge nums">Cap: 120</span>
+            </div>
+            <div class="roster-entry">
+              <span class="roster-session-name">Early Twilight Session · Batch 3</span>
+              <span class="roster-dots"></span>
+              <span class="roster-time nums">16:30 – 17:30</span>
+              <span class="roster-badge nums">Cap: 120</span>
+            </div>
+            <div class="roster-entry">
+              <span class="roster-session-name">Evening Peak Session · Batch 4</span>
+              <span class="roster-dots"></span>
+              <span class="roster-time nums">17:45 – 18:45</span>
+              <span class="roster-badge nums">Cap: 120</span>
+            </div>
+            <div class="roster-entry">
+              <span class="roster-session-name">Night Owls Session · Batch 5</span>
+              <span class="roster-dots"></span>
+              <span class="roster-time nums">19:00 – 20:00</span>
+              <span class="roster-badge nums">Cap: 120</span>
+            </div>
+          </div>
+
+          <div class="roster-footer-line">
+            <span>Administered by SRM University-AP Sports Department · Neerukonda, Mangalagiri, Amaravati</span>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- FAQ: Questions beside a Tall Photograph Blueprint -->
+    <section class="section wrap faq-section" id="faq">
+      <div class="faq-grid">
+        
+        <!-- Left Column: Quick Facts & Accordion -->
+        <div class="faq-left ad-enter">
+          <h2 class="head section-heading">Essential Campus Questions</h2>
+          
+          <div class="faq-quick-facts">
+            <div class="fact-line">
+              <span class="fact-term">Primary Locations:</span>
+              <span class="fact-desc">C. V. Raman Complex, Ganga, Krishna, and Narmada Blocks</span>
+            </div>
+            <div class="fact-line">
+              <span class="fact-term">Authorized Eligibility:</span>
+              <span class="fact-desc">Enrolled SRM-AP Students with active @srmap.edu.in accounts</span>
+            </div>
+            <div class="fact-line">
+              <span class="fact-term">Operating Hours:</span>
+              <span class="fact-desc nums">Monday to Saturday · 06:00 to 20:30 (Scheduled Sessions)</span>
+            </div>
+          </div>
+
+          <!-- Accordion with <details> and <summary> -->
+          <div class="faq-accordion">
+            
+            <details class="faq-item">
+              <summary class="faq-question">
+                <span>Can I switch gym slots if my class timetable changes?</span>
+                <span class="faq-icon" aria-hidden="true"></span>
+              </summary>
+              <div class="faq-answer">
+                <p>Yes. You can use the Change Gym Slot feature in your student dashboard at any time. Your current allocation remains completely active and secure while your transfer request is pending. If approved, the slot swap completes atomically.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-question">
+                <span>How does desk check-in work without physical plastic cards?</span>
+                <span class="faq-icon" aria-hidden="true"></span>
+              </summary>
+              <div class="faq-answer">
+                <p>Open GymSlot on your mobile phone to show your Digital Gym Card. The card generates an encrypted, short-lived QR code. The trainer scans your screen, confirms your registered student photo on their desk display, and logs your attendance in under a second.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-question">
+                <span>What is the absence policy and how does slot reclamation work?</span>
+                <span class="faq-icon" aria-hidden="true"></span>
+              </summary>
+              <div class="faq-answer">
+                <p>The Sports Department monitors regular attendance so allocated equipment isn't left idle while peers wait. If you miss consecutive workout weeks without an approved academic or medical leave, the system issues warning notices before releasing the slot to the next waitlisted applicant.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-question">
+                <span>What happens if my phone battery dies or the camera fails to scan?</span>
+                <span class="faq-icon" aria-hidden="true"></span>
+              </summary>
+              <div class="faq-answer">
+                <p>Authorized gym staff and trainers have an approved manual check-in fallback. They can search by your unique AP Registration Number, verify your official college photo and allocated slot on their terminal, and mark attendance with full audit trail logging.</p>
+              </div>
+            </details>
+
+            <details class="faq-item">
+              <summary class="faq-question">
+                <span>Who manages facility maintenance and training guidance?</span>
+                <span class="faq-icon" aria-hidden="true"></span>
+              </summary>
+              <div class="faq-answer">
+                <p>All four facilities are staffed by certified trainers and student sports interns under the direct supervision of the SRM University-AP Sports Department, ensuring equipment safety, spotter assistance, and hygiene.</p>
+              </div>
+            </details>
+
+          </div>
+        </div>
+
+        <!-- Right Column: Tall Photograph with Overlapping Square Photo -->
+        <div class="faq-right ad-enter">
+          <div class="photo-composition">
+            <div class="tall-photo-frame">
+              <img src="assets/person-preparing-to-lift-a-barbell-at.jpg" width="1000" height="1500" alt="Student preparing for barbell training at gym floor" class="tall-photo" loading="lazy">
+            </div>
+            <div class="square-photo-overlap">
+              <img src="assets/strong-woman-lifting-weights-in-a-gym.jpg" width="600" height="600" alt="Athletic training session at campus fitness facility" class="square-photo" loading="lazy">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- CTA: The Reply Card Blueprint -->
+    <section class="section wrap cta-section" id="portal-entry">
+      <div class="cta-stage">
+        
+        <div class="cta-statement-col ad-enter">
+          <h2 class="head cta-statement-heading">Claim Your Campus Workout Slot</h2>
+          <p class="cta-statement-body">
+            Registration windows are currently open for active semester allocations across C. V. Raman, Ganga, Krishna, and Narmada facilities.
+          </p>
+        </div>
+
+        <!-- The Reply Card Object (tilted panel) -->
+        <div class="reply-card-wrapper ad-enter">
+          <article class="reply-card">
+            <h3 class="head reply-card-title">Gym Access & Allocation</h3>
+            <p class="reply-card-text">
+              Sign in with your verified institutional Google account to view your current slot, generate attendance QR codes, or join the waiting list.
+            </p>
+
+            <div class="reply-card-form">
+              <button class="button btn-reply-action" id="btnGoogleAuth">
+                <svg class="google-g-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                  <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.66v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.15z"/>
+                  <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.34 24 12 24z"/>
+                  <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z"/>
+                  <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/>
+                </svg>
+                <span>Continue with @srmap.edu.in</span>
+              </button>
+            </div>
+
+            <div class="reply-card-terms">
+              <span>Restricted to SRM University-AP students, faculty, and authorized athletics staff.</span>
+            </div>
+          </article>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER: Institutional details + Mandatory Open Archive Image Credits -->
+  <footer class="footer wrap">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <span class="footer-uni-title">SRM University-AP, Andhra Pradesh</span>
+        <p class="footer-dept-name">Department of Physical Education & Sports Facilities</p>
+        <p class="footer-address">Neerukonda, Mangalagiri Mandal, Guntur District, Andhra Pradesh 522240</p>
+      </div>
+
+      <div class="footer-links-col">
+        <span class="footer-col-head">Gym Facilities</span>
+        <ul class="footer-links-list">
+          <li><a href="#simulator" class="link-plain">C. V. Raman Sports Complex</a></li>
+          <li><a href="#simulator" class="link-plain">Ganga Hostel Center</a></li>
+          <li><a href="#simulator" class="link-plain">Krishna Strength Lab</a></li>
+          <li><a href="#simulator" class="link-plain">Narmada Dedicated Gym</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-links-col">
+        <span class="footer-col-head">Policies & Support</span>
+        <ul class="footer-links-list">
+          <li><a href="#itinerary" class="link-plain">Attendance Policy</a></li>
+          <li><a href="#capabilities" class="link-plain">Slot Transfer Rules</a></li>
+          <li><a href="#faq" class="link-plain">Frequently Asked Questions</a></li>
+          <li><a href="#roster" class="link-plain">Session Timetable</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Mandatory Open-Licence Asset Credits from taste-skill assets.mjs -->
+    <div class="footer-credits-section">
+      <p class="credits">
+        Pictures: 
+        <a href="https://commons.wikimedia.org/wiki/File:Young_attractive_man_athlete_doing_exercise_with_the_barbell_in_the_gym.jpg">“Young attractive man athlete doing exercise with the barbell in the gym”</a> by Nenad Stojkovic, <a href="https://creativecommons.org/licenses/by/2.0">CC BY 2.0</a>, via Wikimedia Commons; 
+        <a href="https://commons.wikimedia.org/wiki/File:Person_preparing_to_lift_a_barbell_at_a_gym_with_water_bottle_nearby_during_a_workout_session.jpg">“Person preparing to lift a barbell at a gym with water bottle nearby during a workout ses…”</a> by Shixart1985, <a href="https://creativecommons.org/licenses/by/2.0">CC BY 2.0</a>, via Wikimedia Commons; 
+        <a href="https://commons.wikimedia.org/wiki/File:Woman_doing_squat_workout_in_gym_with_barbell.jpg">“Woman doing squat workout in gym with barbell”</a> by Nenad Stojkovic, <a href="https://creativecommons.org/licenses/by/2.0">CC BY 2.0</a>, via Wikimedia Commons; 
+        <a href="https://commons.wikimedia.org/wiki/File:Strong_woman_lifting_weights_in_a_gym_focused_on_fitness_and_strength_training.jpg">“Strong woman lifting weights in a gym focused on fitness and strength training”</a> by Shixart1985, <a href="https://creativecommons.org/licenses/by/2.0">CC BY 2.0</a>, via Wikimedia Commons; 
+        <a href="https://commons.wikimedia.org/wiki/File:Fit_young_man_doing_deadlift_exercise_in_gym.jpg">“Fit young man doing deadlift exercise in gym”</a> by Nenad Stojkovic, <a href="https://creativecommons.org/licenses/by/2.0">CC BY 2.0</a>, via Wikimedia Commons; 
+        <a href="https://commons.wikimedia.org/wiki/File:Track_%26_Field_-_Adidas_Grand_Prix_-_Icahn_Stadium_(20578530518).jpg">“Track &amp; Field - Adidas Grand Prix - Icahn Stadium (20578530518)”</a> by Steven Pisano from Brooklyn, NY, USA, <a href="https://creativecommons.org/licenses/by/2.0">CC BY 2.0</a>, via Wikimedia Commons.
+      </p>
+    </div>
+
+    <div class="footer-bottom">
+      <span class="footer-copy">© 2026 SRM University-AP. All sports allocations and check-ins are subject to university athletic regulations.</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
