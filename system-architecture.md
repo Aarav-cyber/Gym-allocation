@@ -1,7 +1,8 @@
 # Gym Management System — System Architecture
 
 **Version:** 1.0  
-**Architecture:** Microservices + REST APIs + Background Jobs
+**Architecture:** Microservices + REST APIs + Background Jobs  
+**Backend Stack:** Python 3.11+ / FastAPI / SQLAlchemy 2.x (async) / Alembic / Pydantic v2
 
 ---
 
@@ -9,17 +10,21 @@
 
 The Gym Management System shall use a microservices architecture.
 
-Primary technologies:
+Confirmed primary technologies:
 
-- Frontend: React / Next.js
-- Backend: Python + FastAPI
-- Database: PostgreSQL
-- Service Communication: REST APIs
-- Background Processing: Python Background Workers / Job Scheduler
-- Cache: Redis
-- Containers: Docker
-- Object Storage: S3-compatible storage
-- Excel Processing: openpyxl + pandas
+- Frontend: React / Next.js (options)
+- Backend: **Python 3.11+ with FastAPI** (async, Pydantic v2 validation, automatic OpenAPI docs)
+- ORM: **SQLAlchemy 2.x** (async sessions, declarative models, repository pattern)
+- Migrations: **Alembic** (per-service, version-controlled schema migrations)
+- Database: **PostgreSQL 15+** (one database per service)
+- Service Communication: Authenticated REST APIs
+- Background Processing: **APScheduler** or **Celery + Beat** (per service, to be confirmed)
+- Cache / Locks: **Redis** (optional; rate limiting, distributed locks — never authoritative store)
+- Containers: **Docker + Docker Compose**
+- Object Storage: **S3-compatible** (AWS S3, MinIO, GCS — provider to be confirmed)
+- Excel Processing: **openpyxl + pandas**
+- QR Generation: **qrcode** (server-side); **html5-qrcode** (browser scanner)
+- Testing: **pytest + httpx + pytest-asyncio**
 
 ---
 
@@ -44,6 +49,7 @@ Primary technologies:
 ┌─────────────────┐       ┌─────────────────┐       ┌─────────────────┐
 │ Identity        │       │ Student         │       │ Slot            │
 │ Service         │       │ Service         │       │ Service         │
+│ (FastAPI)       │       │ (FastAPI)       │       │ (FastAPI)       │
 └────────┬────────┘       └────────┬────────┘       └────────┬────────┘
          │                         │                         │
          │                         │                         │
@@ -54,12 +60,14 @@ Primary technologies:
                          ┌─────────────────────┐
                          │     PostgreSQL      │
                          │                     │
-                         │ Source of Truth     │
+                         │  (per-service DBs)  │
+                         │  + Alembic Migs     │
                          └──────────┬──────────┘
                                     │
                          ┌──────────▼──────────┐
                          │  Background Worker  │
-                         │    / Scheduler      │
+                         │  (APScheduler /     │
+                         │   Celery + Beat)    │
                          └──────────┬──────────┘
                                     │
                ┌────────────────────┼────────────────────┐
@@ -582,14 +590,14 @@ Example:
 Docker Compose / Container Platform
 
 ├── api-gateway
-├── identity-service
-├── student-service
-├── slot-service
-├── allocation-service
-├── attendance-service
-├── notification-service
-├── complaint-service
-├── report-service
+├── identity-service        (FastAPI + Alembic)
+├── student-service         (FastAPI + Alembic)
+├── slot-service            (FastAPI + Alembic)
+├── allocation-service      (FastAPI + Alembic)
+├── attendance-service      (FastAPI + Alembic)
+├── notification-service    (FastAPI + Alembic)
+├── complaint-service       (FastAPI + Alembic)
+├── report-service          (FastAPI + Alembic)
 ├── background-worker
 ├── scheduler
 ├── postgres
@@ -640,9 +648,12 @@ The system shall follow these principles:
 6. FCFS waiting-list ordering shall use server-generated timestamps.
 7. Background jobs shall be retryable and idempotent where possible.
 8. Redis is optional and shall not replace PostgreSQL.
-9. APIs shall be versioned.
+9. APIs shall be versioned (`/api/v1`).
 10. All sensitive operations shall be authenticated and authorized.
-11. Audit logs shall be maintained for important administrative actions.
+11. Audit logs shall be maintained for all sensitive administrative actions.
 12. Services shall expose health and readiness checks.
 13. Long-running operations shall not block synchronous API requests.
-14. The architecture shall remain simple enough to operate without a dedicated event-streaming platform.
+14. Domain events are published via a transactional outbox after a durable commit. The event broker (e.g. Kafka, RabbitMQ) is selectable per deployment environment; the architecture does not mandate a specific platform but does require at-least-once delivery, versioned events, and idempotent consumers.
+15. The backend is implemented in Python 3.11+ with FastAPI, SQLAlchemy 2.x (async), Alembic for per-service migrations, and Pydantic v2 for validation.
+16. Each microservice has its own PostgreSQL database and Alembic migration tree; no service accesses another service's database directly.
+17. Attendance corrections are append-only; original records are preserved and a correction row is added.

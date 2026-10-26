@@ -151,30 +151,32 @@ flowchart TB
         APIGateway["🛡️ Authenticated API Gateway<br/>(Versioned REST + RBAC)"]
     end
 
-    subgraph ServiceLayer ["Core Application Services"]
-        IdentitySvc["🔐 Identity Service<br/>(Users, Roles, Account Status)"]
+    subgraph ServiceLayer ["Core Application Services — Python / FastAPI"]
+        IdentitySvc["🔐 Identity Service<br/>(Users, Roles, Sessions)"]
         StudentSvc["🎓 Student Service<br/>(Profile, Private Photos, Photo Review)"]
-        SlotSvc["🎯 Slot Service<br/>(Gyms, Slots, Excel Import)"]
+        SlotSvc["🎯 Slot Service<br/>(Gyms, Slots, Schedules, Excel Import)"]
         AllocationSvc["🪑 Allocation Service<br/>(Capacity, Applications, FCFS Waitlists)"]
         AttendanceSvc["⏱️ Attendance Service<br/>(Opaque QR, Check-In, Absence Rules)"]
-        NotificationSvc["🔔 Notification Service"]
-        ReportSvc["📊 Report & Audit Service"]
+        NotificationSvc["🔔 Notification Service<br/>(In-App, Email, Announcements)"]
+        ComplaintSvc["📝 Complaint Service<br/>(Tickets, Comments, Resolution)"]
+        ReportSvc["📊 Report & Audit Service<br/>(Reports, Exports, Audit Trail)"]
     end
 
     subgraph EventLayer ["Event-Driven Integration"]
-        Outbox["Transactional Outbox"]
-        Broker[("Durable Event Broker<br/>(Versioned Domain Events)")]
+        Outbox["Transactional Outbox<br/>(per service DB)"]
+        Broker[("Durable Event Broker<br/>(Versioned Domain Events)<br/>e.g. Kafka / RabbitMQ")]
     end
 
-    subgraph DataLayer ["Service-Owned Data & File Storage"]
+    subgraph DataLayer ["Service-Owned Data & File Storage — PostgreSQL + Alembic"]
         IdentityDB[("Identity DB")]
         StudentDB[("Student DB")]
         SlotDB[("Slot DB")]
         AllocationDB[("Allocation DB")]
         AttendanceDB[("Attendance DB")]
         NotificationDB[("Notification DB")]
+        ComplaintDB[("Complaint DB")]
         ReportDB[("Report DB")]
-        ObjectStore[("Private Photo/Object Storage")]
+        ObjectStore[("Private Photo/Object Storage<br/>S3-compatible")]
     end
 
     StudentApp -->|Google Sign-In| GoogleOAuth
@@ -192,6 +194,7 @@ flowchart TB
     APIGateway --> AllocationSvc
     APIGateway --> AttendanceSvc
     APIGateway --> NotificationSvc
+    APIGateway --> ComplaintSvc
     APIGateway --> ReportSvc
 
     IdentitySvc --> IdentityDB
@@ -201,6 +204,7 @@ flowchart TB
     AllocationSvc --> AllocationDB
     AttendanceSvc --> AttendanceDB
     NotificationSvc --> NotificationDB
+    ComplaintSvc --> ComplaintDB
     ReportSvc --> ReportDB
 
     IdentitySvc --> Outbox
@@ -208,12 +212,14 @@ flowchart TB
     SlotSvc --> Outbox
     AllocationSvc --> Outbox
     AttendanceSvc --> Outbox
+    ComplaintSvc --> Outbox
     Outbox --> Broker
     Broker --> StudentSvc
     Broker --> SlotSvc
     Broker --> AllocationSvc
     Broker --> AttendanceSvc
     Broker --> NotificationSvc
+    Broker --> ComplaintSvc
     Broker --> ReportSvc
 ```
 
@@ -291,29 +297,52 @@ The following is a **logical view** of core entities, not a single shared databa
 
 ```mermaid
 erDiagram
+    users ||--o{ user_roles : "has"
+    roles ||--o{ user_roles : "granted_to"
     users ||--o{ students : "profile"
     students ||--o{ allocations : "has"
     gyms ||--o{ gym_slots : "contains"
+    gym_slots ||--o{ slot_schedules : "scheduled_by"
     gym_slots ||--o{ allocations : "allocated_to"
-    gym_slots ||--o{ attendance_sessions : "schedules"
+    gym_slots ||--o{ attendance_sessions : "sessions"
     attendance_sessions ||--o{ attendance : "records"
+    attendance_sessions ||--o{ attendance_exemptions : "exempt"
     students ||--o{ attendance : "logs"
     allocations ||--o{ slot_change_requests : "current"
+    allocations ||--o{ attendance : "authorized_by"
     gym_slots ||--o{ slot_change_requests : "requested"
     students ||--o{ applications : "applies"
+    applications }o--|| registration_windows : "within"
+    students ||--o{ photo_change_requests : "requests"
+    users ||--o{ notifications : "receives"
     users ||--o{ audit_logs : "performed_by"
+    students ||--o{ complaints : "submits"
 
     users {
         uuid id PK
         string email UK
-        enum role "STUDENT, TRAINER, ADMIN, SUPER_ADMIN"
+        timestamp email_verified_at
         string status
         timestamp created_at
+        timestamp updated_at
+    }
+
+    roles {
+        uuid id PK
+        string name "STUDENT, TRAINER, ADMIN, SUPER_ADMIN"
+        timestamp created_at
+    }
+
+    user_roles {
+        uuid user_id FK
+        uuid role_id FK
+        uuid assigned_by
+        timestamp assigned_at
     }
 
     students {
         uuid id PK
-        uuid user_id FK
+        uuid user_id
         string ap_number UK
         string full_name
         string department
@@ -322,6 +351,19 @@ erDiagram
         string approved_photo_ref
         string account_status
         boolean is_eligible
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    photo_change_requests {
+        uuid id PK
+        uuid student_id
+        string requested_photo_ref
+        string status "PENDING, APPROVED, REJECTED"
+        uuid reviewed_by
+        string decision_reason
+        timestamp requested_at
+        timestamp decided_at
     }
 
     gyms {
@@ -330,35 +372,55 @@ erDiagram
         string location
         string eligibility_group
         boolean is_active
+        timestamp created_at
+        timestamp updated_at
     }
 
     gym_slots {
         uuid id PK
         uuid gym_id FK
-        time start_time
-        time end_time
         int capacity
         boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    slot_schedules {
+        uuid id PK
+        uuid slot_id FK
+        string day_of_week
+        time start_time
+        time end_time
+        date effective_from
+        date effective_until
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    registration_windows {
+        uuid id PK
+        string name
+        timestamp opens_at
+        timestamp closes_at
+        string timezone
+        time daily_open_time
+        time daily_close_time
+        string status
+        uuid created_by
+        timestamp created_at
+        timestamp updated_at
     }
 
     applications {
         uuid id PK
         uuid student_id
         uuid slot_id
+        uuid registration_window_id FK
         timestamp applied_at_utc
         bigint priority_sequence
-        enum status "PENDING, APPROVED, REJECTED, WAITLISTED, OFFERED, WITHDRAWN, EXPIRED"
-    }
-
-    photo_change_requests {
-        uuid id PK
-        uuid student_id
-        string requested_photo_ref
-        enum status "PENDING, APPROVED, REJECTED"
-        uuid reviewed_by
-        string decision_reason
-        timestamp requested_at
-        timestamp decided_at
+        string status "PENDING, APPROVED, REJECTED, WAITLISTED, OFFERED, WITHDRAWN, EXPIRED"
+        timestamp created_at
+        timestamp updated_at
     }
 
     gym_card_tokens {
@@ -366,55 +428,127 @@ erDiagram
         uuid student_id
         uuid allocation_id
         uuid session_id
-        string token_hash
+        string token_hash UK
         timestamp expires_at
         timestamp revoked_at
+        timestamp created_at
     }
 
     allocations {
         uuid id PK
-        uuid student_id FK
-        uuid slot_id FK
-        enum status "ACTIVE, TRANSFERRED, TERMINATED, EXPIRED"
-        timestamp start_date
-        timestamp end_date
+        uuid student_id
+        uuid slot_id
+        string status "ACTIVE, TRANSFERRED, TERMINATED, EXPIRED"
+        date start_date
+        date end_date
+        timestamp created_at
+        timestamp updated_at
     }
 
     slot_change_requests {
         uuid id PK
-        uuid student_id FK
+        uuid student_id
         uuid current_allocation_id FK
-        uuid requested_slot_id FK
-        enum status "PENDING, APPROVED, REJECTED, WITHDRAWN"
+        uuid requested_slot_id
+        string status "PENDING, APPROVED, REJECTED, WITHDRAWN"
         string reason
-        uuid reviewed_by FK
+        uuid reviewed_by
         timestamp reviewed_at
+        timestamp created_at
+        timestamp updated_at
     }
 
     attendance_sessions {
         uuid id PK
-        uuid slot_id FK
+        uuid slot_id
         date session_date
-        boolean is_cancelled
+        time starts_at
+        time ends_at
+        string status "SCHEDULED, COMPLETED, CANCELLED"
+        timestamp created_at
+        timestamp updated_at
     }
 
     attendance {
         uuid id PK
-        uuid student_id FK
+        uuid student_id
+        uuid allocation_id
         uuid session_id FK
+        string status "PRESENT, ABSENT, LATE, EXCUSED, INVALIDATED"
         timestamp check_in_time
-        enum method "QR_SCAN, MANUAL_FALLBACK"
-        uuid staff_id FK
+        string method "QR_SCAN, MANUAL_FALLBACK"
+        uuid staff_id
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    attendance_exemptions {
+        uuid id PK
+        uuid session_id FK
+        uuid student_id
+        string reason
+        uuid created_by
+        timestamp created_at
+    }
+
+    attendance_corrections {
+        uuid id PK
+        uuid attendance_id FK
+        uuid corrected_by
+        string old_status
+        string new_status
+        string reason
+        timestamp corrected_at
+    }
+
+    notifications {
+        uuid id PK
+        uuid user_id
+        string type
+        string channel "EMAIL, IN_APP"
+        string subject
+        string message
+        string status "PENDING, SENT, FAILED"
+        string deduplication_key UK
+        timestamp sent_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    announcements {
+        uuid id PK
+        uuid created_by
+        string title
+        string body
+        string audience
+        timestamp published_at
+        timestamp created_at
+    }
+
+    complaints {
+        uuid id PK
+        uuid student_id
+        uuid submitted_by
+        string category
+        string title
+        string description
+        string status "OPEN, IN_PROGRESS, RESOLVED, CLOSED, REJECTED"
+        string priority
+        uuid assigned_to
+        timestamp resolved_at
+        timestamp created_at
+        timestamp updated_at
     }
 
     audit_logs {
         uuid id PK
-        uuid actor_id FK
+        uuid actor_id
         string action
         string target_type
         uuid target_id
         jsonb before_state
         jsonb after_state
+        string correlation_id
         timestamp created_at
     }
 ```
@@ -471,10 +605,23 @@ Application priority is determined by the backend-generated `applied_at_utc` in 
 | `GET/PUT` | `/api/v1/admin/slot-change-requests` | Review, approve, or reject student transfer requests | ADMIN |
 | `GET/POST`| `/api/v1/admin/allocations` | Manual allocation, transfer, or termination | ADMIN |
 | `GET/PUT` | `/api/v1/admin/attendance` | Inspect and correct attendance records | ADMIN |
+| `GET/POST`| `/api/v1/admin/absence-policies` | Configure absence policy thresholds and evaluation frequency | ADMIN |
 | `GET/POST`| `/api/v1/admin/absence-monitor` | Review at-risk students & process terminations | ADMIN |
+| `GET/POST`| `/api/v1/admin/announcements` | Publish and manage broadcast announcements | ADMIN |
 | `POST` | `/api/v1/admin/imports` | Bulk import students/allocations with validation preview | ADMIN |
 | `GET` | `/api/v1/admin/reports` | Export CSV/Excel analytics and compliance reports | ADMIN |
 | `GET` | `/api/v1/admin/audit-logs` | Query append-only audit trail | ADMIN |
+| `GET/POST`| `/api/v1/admin/settings` | Configure campus email domains, timezone, and system settings | ADMIN / SUPER_ADMIN |
+
+### 5. Complaints (`/complaints`)
+| Method | Endpoint | Description | Access |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/complaints` | Submit a new complaint or support ticket | Student |
+| `GET` | `/api/v1/complaints` | List own submitted complaints | Student |
+| `GET` | `/api/v1/complaints/:id` | View own complaint details and comments | Student |
+| `GET` | `/api/v1/admin/complaints` | List all complaints with filtering and assignment | ADMIN |
+| `PUT` | `/api/v1/admin/complaints/:id` | Update status, priority, and assignment | ADMIN |
+| `POST` | `/api/v1/admin/complaints/:id/comments` | Add a staff comment or resolution note | ADMIN |
 
 ---
 
@@ -485,54 +632,69 @@ These are candidate technologies from the architecture proposal, not confirmed d
 | Layer | Technology | Rationale |
 | :--- | :--- | :--- |
 | **Frontend** | React / Next.js / Vite (options) | Responsive student, trainer, and admin experiences |
-| **Backend API** | Node.js with Express / Fastify (options) | Versioned REST APIs and service boundaries |
-| **Database** | PostgreSQL, database per service | ACID transactions within each service's ownership |
-| **Event transport** | Kafka or an equivalent durable broker (to be selected) | Versioned, asynchronous domain events |
+| **Backend API** | **Python 3.11+ with FastAPI** | Async-capable, typed REST APIs with automatic OpenAPI docs and service boundaries |
+| **ORM / DB access** | **SQLAlchemy 2.x (async)** | Declarative models, repository pattern, async session management |
+| **Migrations** | **Alembic** | Per-service schema versioning and migration history |
+| **Data validation** | **Pydantic v2** | Request/response schemas with strict runtime validation |
+| **Database** | PostgreSQL 15+, database per service | ACID transactions within each service's ownership |
+| **Event transport** | Durable event broker (e.g. Kafka, RabbitMQ — to be confirmed per deployment) | Versioned, at-least-once domain events with transactional outbox |  
 | **Authentication** | Google OAuth 2.0 / OpenID Connect | Verified institutional identities with provisioned-account matching |
-| **File storage** | Private object storage (provider to be selected) | Access-controlled student photos and import files |
-| **QR/scanner** | QR generation and browser camera libraries (to be selected) | Opaque token display and staff-side scanning |
-| **Background jobs** | Scheduler/worker technology (to be selected) | Waitlist promotion, absence evaluation, notifications, and session generation |
+| **File storage** | Private S3-compatible object storage (AWS S3, MinIO, GCS — provider to be confirmed) | Access-controlled student photos and import files |
+| **Excel processing** | **openpyxl + pandas** | Slot and student bulk import parsing and validation |
+| **QR / scanner** | **qrcode** (server-side generation), **html5-qrcode** (browser camera) | Opaque token generation and staff-side QR scanning |
+| **Background jobs** | **APScheduler** or **Celery + Beat** (to be confirmed per service) | Waitlist promotion, absence evaluation, notifications, session generation |
+| **Cache / locks** | **Redis** (optional) | Rate limiting, distributed locks, short-lived caching — never authoritative store |
+| **Containers** | Docker + Docker Compose | Local dev and initial deployment |
+| **Testing** | **pytest + httpx + pytest-asyncio** | Unit, integration, and API-level tests per service |
 
 ---
 
-## 🚀 Implementation Setup (Pending)
+## 🚀 Implementation Setup
 
-This repository currently contains documentation only. It has no application source code, package manifests, database migrations, or runnable setup scripts. The implementation framework, broker, storage provider, and deployment configuration remain to be selected. The legacy commands and single-database environment template below do not match the documented microservices architecture and must not be used as a setup guide. Any example credential values are placeholders, not secrets; generate unique credentials for a future implementation.
+This repository currently contains documentation only. Implementation is pending. The backend stack is confirmed as **Python 3.11+ / FastAPI / SQLAlchemy 2.x / Alembic**. Each microservice will be a separate Python package with its own virtual environment, database, and Alembic migration tree.
 
-### Legacy Prerequisites (Reference Only)
-- **Node.js** (v18.x or v20.x LTS)
-- **PostgreSQL** (v14 or higher)
-- **Google Cloud Console Project** with OAuth 2.0 credentials enabled for Web Applications.
+### Prerequisites
+- **Python** 3.11 or higher
+- **PostgreSQL** 15 or higher
+- **Docker & Docker Compose** (for local multi-service development)
+- **Google Cloud Console Project** with OAuth 2.0 credentials enabled for Web Applications
+- **Redis** (optional; for rate limiting and distributed locks)
 
-### Legacy Environment Example (Not a Working Configuration)
+### Environment Template (per service)
 
-Create a `.env` file in the root directory:
+Each service reads its configuration from environment variables. Create a `.env` file at the service root:
 
 ```env
-# Server Configuration
-PORT=5000
-NODE_ENV=development
+# Service
+APP_ENV=development
 API_PREFIX=/api/v1
-CLIENT_URL=http://localhost:3000
+DEBUG=true
 
-# Database
-DATABASE_URL="postgresql://postgres:password@localhost:5432/gymslot_db?schema=public"
+# Database (each service has its own DB)
+DATABASE_URL=postgresql+asyncpg://postgres:password@localhost:5432/<service>_db
 
 # Google OAuth 2.0
-GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
-GOOGLE_CLIENT_SECRET="your-google-client-secret"
-GOOGLE_CALLBACK_URL="http://localhost:5000/api/v1/auth/google/callback"
-ALLOWED_EMAIL_DOMAINS="srmap.edu.in"
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:8000/api/v1/auth/google/callback
+ALLOWED_EMAIL_DOMAINS=srmap.edu.in
 
-# Session & JWT
-JWT_SECRET="<generate a unique random value locally>"
-SESSION_SECRET="<generate a unique random value locally>"
+# JWT / Session
+JWT_SECRET=<generate a unique random secret locally>
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=60
+
+# Object Storage
+OBJECT_STORAGE_BUCKET=gymslot-private
+OBJECT_STORAGE_ENDPOINT=https://s3.amazonaws.com
+OBJECT_STORAGE_ACCESS_KEY=<key>
+OBJECT_STORAGE_SECRET_KEY=<secret>
 
 # Timezone
-TZ="Asia/Kolkata"
+TZ=Asia/Kolkata
 ```
 
-### Installation & Setup
+### Installation & Setup (per service)
 
 1. **Clone the Repository**
    ```bash
@@ -540,24 +702,30 @@ TZ="Asia/Kolkata"
    cd Gym-allocation
    ```
 
-2. **Install Dependencies**
+2. **Create and activate a virtual environment**
    ```bash
-   npm install
+   python -m venv .venv
+   source .venv/bin/activate   # Windows: .venv\Scripts\activate
    ```
 
-3. **Run Database Migrations**
+3. **Install dependencies**
    ```bash
-   npx prisma migrate dev --name init
+   pip install -r requirements.txt
    ```
 
-4. **Seed Initial Gyms & Admin (Optional)**
+4. **Run database migrations (Alembic)**
    ```bash
-   npm run seed
+   alembic upgrade head
    ```
 
-5. **Start Development Server**
+5. **Seed initial data (optional)**
    ```bash
-   npm run dev
+   python scripts/seed.py
+   ```
+
+6. **Start the development server**
+   ```bash
+   uvicorn app.main:app --reload --port 8000
    ```
 
 ---
@@ -584,30 +752,38 @@ TZ="Asia/Kolkata"
 ## 🗺️ Development Roadmap
 
 - [x] **Product Requirements Document** (`REQUIREMENTS.md`)
-- [ ] **Phase 1: Foundation & Auth**
-  - [ ] PostgreSQL databases and migrations per service
-  - [ ] Google OAuth 2.0 with `@srmap.edu.in` domain validation
+- [x] **System Architecture** (`system-architecture.md`)
+- [x] **Database Architecture** (`03-database.md`)
+- [ ] **Phase 1: Foundation & Auth** *(Python / FastAPI / SQLAlchemy / Alembic)*
+  - [ ] Per-service PostgreSQL databases and Alembic migration trees
+  - [ ] FastAPI project scaffold for each microservice (Identity, Student, Slot, Allocation, Attendance, Notification, Complaint, Report)
+  - [ ] Google OAuth 2.0 / OIDC with `@srmap.edu.in` domain validation
   - [ ] Provisioned student accounts, photo onboarding, and photo approval
-  - [ ] RBAC (`STUDENT`, `TRAINER`, `ADMIN`, `SUPER_ADMIN`)
+  - [ ] RBAC (`STUDENT`, `TRAINER`, `ADMIN`, `SUPER_ADMIN`) enforced as FastAPI dependencies
+  - [ ] API Gateway routing configuration
 - [ ] **Phase 2: Facilities, Slot Import & Allocation**
-  - [ ] Gym/slot management and Excel slot import with preview/history
-  - [ ] Registration window and atomic capacity enforcement
-  - [ ] Server-timestamp FCFS waitlists and promotion
+  - [ ] Gym/slot/schedule management and Excel slot import (`openpyxl`) with preview/history
+  - [ ] Registration window engine and atomic capacity enforcement
+  - [ ] Server-timestamp FCFS waitlists and idempotent promotion workers
 - [ ] **Phase 3: Student Portal & Transfer Requests**
   - [ ] Student dashboard & available slot search
-  - [ ] Digital gym card with private photo and opaque QR token
-  - [ ] Change Gym Slot transfer request engine (Option A & B)
+  - [ ] Digital gym card with private photo (pre-signed S3 URLs) and opaque QR token (`qrcode`)
+  - [ ] Change Gym Slot transfer request engine (Option A admin-approval & Option B atomic swap)
 - [ ] **Phase 4: QR Attendance & Desk Scanner**
   - [ ] Short-lived opaque QR token generation, expiry, and revocation
   - [ ] Mobile camera scanner integration (`html5-qrcode`)
-  - [ ] Server-side validation & duplicate prevention
-  - [ ] Manual fallback by AP number
+  - [ ] Server-side multi-point validation & duplicate prevention
+  - [ ] Manual fallback by AP number with full audit trail
 - [ ] **Phase 5: Absence Monitoring & Retention**
   - [ ] Configurable absence policy engine
-  - [ ] Idempotent cron jobs for warning & termination
-  - [ ] Automatic capacity reclamation
-- [ ] **Phase 6: Administration & Pilot**
+  - [ ] Idempotent APScheduler / Celery Beat cron jobs for warning & termination
+  - [ ] Automatic capacity reclamation on termination
+  - [ ] Attendance correction workflow with `attendance_corrections` audit table
+- [ ] **Phase 6: Complaints, Administration & Pilot**
+  - [ ] Complaint / support ticket service
   - [ ] Bulk student/allocation CSV/Excel import with pre-commit preview
-  - [ ] Sports admin analytics & CSV/Excel export
-  - [ ] Event-driven notifications and append-only audit logs
+  - [ ] Sports admin analytics & CSV/Excel export (openpyxl/pandas)
+  - [ ] Transactional outbox publisher and event broker integration
+  - [ ] Event-driven notifications (in-app + email via SMTP/SES)
+  - [ ] Append-only audit logs queryable by admin
   - [ ] SRM University-AP Sports Department pilot deployment

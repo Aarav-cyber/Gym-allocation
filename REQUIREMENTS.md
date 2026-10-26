@@ -976,21 +976,29 @@ Authorized staff may search by AP number when camera scanning is unavailable or 
 
 \- \`id\`: Unique record ID.
 
-\- \`student_id\`: Student reference.
+\- \`student_id\`: Student reference (application-level; not a cross-database FK).
 
-\- \`session_id\`: Scheduled session reference.
+\- \`allocation_id\`: Active allocation at time of check-in (application-level reference).
 
-\- \`gym_id\` & \`slot_id\`: Gym and slot details.
+\- \`session_id\`: Scheduled session reference (local FK to attendance_sessions).
 
-\- \`session_date\`: Date of the session.
+\- \`session_date\`: Date of the session (denormalized from session for query convenience).
 
-\- \`check_in_timestamp\`: Precise timestamp of check-in.
+\- \`check_in_timestamp\`: Precise UTC timestamp of check-in.
 
 \- \`check_in_method\`: \`QR_SCAN\` or \`MANUAL_FALLBACK\`.
 
-\- \`staff_id\`: Staff member who confirmed attendance.
+\- \`staff_id\`: Staff member who confirmed attendance (application-level reference).
 
-\- \`status\`: \`ATTENDED\`, \`EXCUSED\`, \`INVALIDATED\`.
+\- \`status\`: \`PRESENT\`, \`ABSENT\`, \`LATE\`, \`EXCUSED\`, or \`INVALIDATED\`.
+
+  - \`PRESENT\` / \`LATE\` — student physically attended (\`LATE\` = arrived after window opened but before it closed).
+
+  - \`ABSENT\` — session occurred, student did not check in, and no exemption applies.
+
+  - \`EXCUSED\` — authorized exemption applied (cancelled session, medical leave, campus event).
+
+  - \`INVALIDATED\` — row administratively voided; original row retained; correction row added to \`attendance_corrections\`.
 
 
 
@@ -1414,15 +1422,15 @@ Administrators configure:
 
 \- \`applications\`: New slot applications, server-generated UTC submission timestamp, deterministic sequence, and approval/waitlist statuses.
 
-\- \`waitlist_entries\`: FCFS queue membership and lifecycle where maintained separately from application records.
+\- \`waitlist_entries\`: FCFS queue membership is managed through \`applications.status = 'WAITLISTED'\` and the server-generated \`applied_at_utc\` / \`priority_sequence\` fields. A separate \`waitlist_entries\` table is not maintained; all application and queue state is owned by the \`applications\` table.
 
 \- \`slot_change_requests\`: Transfer applications linking current and requested slots.
 
-\- \`attendance_sessions\`: Pre-generated daily sessions per slot (excluding holidays).
+\- \`attendance_sessions\`: Pre-generated daily sessions per slot (excluding holidays, marked CANCELLED if closed).
 
-\- \`attendance\`: Validated check-in records.
+\- \`attendance\`: Validated check-in records (status: PRESENT, ABSENT, LATE, EXCUSED, INVALIDATED).
 
-\- \`attendance_corrections\`: Audit log of manual attendance edits.
+\- \`attendance_corrections\`: Append-only audit log of authorized manual attendance edits (captures old/new status, corrector, reason, and timestamp).
 
 \- \`absence_policies\`: Configured absence rules and thresholds.
 
@@ -1438,7 +1446,9 @@ Administrators configure:
 
 \- \`audit_logs\`: Append-only security and operational audit trail.
 
-\- \`support_requests\`: Student help tickets.
+\- \`complaints\` and \`complaint_comments\`: Formal complaint lifecycle (OPEN → IN_PROGRESS → RESOLVED / CLOSED / REJECTED), staff assignment, comments, and resolution. Owned by the Complaint Service.
+
+\- \`support_requests\`: In-app student help tickets for operational issues (incorrect allocation, missing attendance, login help). Distinct from formal complaints; routed directly to sports staff for triage. Also owned by the Complaint Service.
 
 
 
@@ -1478,7 +1488,7 @@ Administrators configure:
 
 Versioned REST API base: \`/api/v1\`
 
-
+The backend is implemented with **FastAPI** (Python 3.11+). Each service exposes an OpenAPI-compliant interface. Request and response schemas are defined with **Pydantic v2** models. Route-level RBAC is enforced as FastAPI dependency injection.
 
 **### Authentication (\`/api/v1/auth\`)**
 
@@ -1698,17 +1708,19 @@ Versioned REST API base: \`/api/v1\`
 
 **### Phase 1 — Foundation**
 
-\- PostgreSQL schema setup with Prisma/TypeORM.
+\- PostgreSQL 15+ schema setup with **SQLAlchemy 2.x (async) and Alembic** migrations (one database per service).
+
+\- FastAPI microservice scaffold for each service (Identity, Student, Slot, Allocation, Attendance, Notification, Complaint, Report).
 
 \- Google OAuth 2.0 with college email domain validation.
 
-\- Provisioned student accounts, private photograph storage, and photo-change approval workflow.
+\- Provisioned student accounts, private photograph storage (S3-compatible), and photo-change approval workflow.
 
-\- RBAC middleware (\`STUDENT\`, \`TRAINER\`, \`ADMIN\`, \`SUPER_ADMIN\`).
+\- RBAC middleware (\`STUDENT\`, \`TRAINER\`, \`ADMIN\`, \`SUPER_ADMIN\`) enforced as FastAPI dependencies.
 
-\- Gym facilities and slot management.
+\- Gym facilities and slot management (including \`slot_schedules\` for recurrence).
 
-\- Excel slot-import validation, preview, confirmation, and import history.
+\- Excel slot-import validation using openpyxl, preview, confirmation, and import history.
 
 \- Bulk student/allocation data import with CSV/Excel validation.
 
