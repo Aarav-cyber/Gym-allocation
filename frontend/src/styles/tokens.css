@@ -1,0 +1,57 @@
+/* ==========================================================================
+   GymSlot — Design System Tokens
+   Art Direction: "page-is-the-object" (Stationery, Tabbed Folders & Passes)
+   Palette: Three Stones + SRM-AP Athletic Forest Green
+   Type: Zilla Slab (400, 500, 600) + Tabular Sans
+   ========================================================================== */
+
+:root {
+  /* ---------- Background & Paper Surfaces ---------- */
+  --bg: #eeecea;              /* Warm stone ground */
+  --surface: #e4e1dd;         /* Crisp ledger paper */
+  --surface-tint: #dbd6cd;    /* Card tint */
+  --surface-dark: #cdc3b6;    /* Unselected tab / folder back */
+  --card-paper: #e8e5e0;      /* Physical gym pass ground */
+
+  /* ---------- Inks & Typography ---------- */
+  --ink: #1c1b1a;             /* Deep academic charcoal ink */
+  --muted: #3a3836;           /* Subordinate metadata ink */
+  --faint: #696561;           /* Captions & micro labels */
+
+  /* ---------- Collegiate Athletic Accents ---------- */
+  --accent: #2e4a3e;          /* SRM-AP Athletic Forest Green */
+  --accent-hover: #1f352b;    /* Active press state */
+  --accent-ink: #ffffff;      /* Contrast text on green */
+  --accent-light: #d8e5df;    /* Subtle highlight badge */
+
+  /* ---------- Status Accents ---------- */
+  --status-present: #2e4a3e;  /* Present / Active / Valid */
+  --status-absent: #7a2b28;   /* Absent / Terminated */
+  --status-late: #96611e;     /* Late Check-in */
+  --status-waitlist: #3d5a80; /* Queued in FCFS waitlist */
+  --status-pending: #856404;  /* Pending Review */
+
+  /* ---------- Typography Hierarchy ---------- */
+  --font-display: "Zilla Slab", Georgia, serif;
+  --font-text: "Zilla Slab", Georgia, serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "SF Mono", Consolas, Menlo, monospace;
+
+  /* ---------- Fluid Scales (clamp) ---------- */
+  --step-small: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
+  --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.25rem);
+  --step-lead: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem);
+  --step-head: clamp(2rem, 1.3rem + 3.2vw, 3.8rem);
+  --step-display: clamp(4.2rem, 2rem + 8.5vw, 9.2rem);
+
+  /* ---------- Margins & Rhythm ---------- */
+  --margin: clamp(1.2rem, 3vw, 3rem);
+  --gutter: clamp(1rem, 2vw, 2.5rem);
+  --section-gap: clamp(4.5rem, 8vw, 9rem);
+  --radius: 0px;
+
+  /* ---------- Motion ---------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --t-press: 140ms;
+  --t-hover: 180ms;
+}

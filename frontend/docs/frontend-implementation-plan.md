@@ -804,7 +804,7 @@ graph TD
 
 \| :--- | :--- | :---: | :---: | :---: |
 
-\| **\*\*Phase 0\*\*** | Project Scaffolding (Vite + React + TS) | 2 | ⏳ Pending | [ ] |
+\| **Phase 0** | Project Scaffolding (Vite + React + TS) | 2 | ✅ Completed | [x] |
 
 \| **\*\*Phase 1\*\*** | Design System Tokens & Atomic Primitives | 2 | ⏳ Pending | [ ] |
 
