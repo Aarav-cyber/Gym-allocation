@@ -13,22 +13,22 @@ graph LR
     subgraph PublicAuth ["Public & Onboarding"]
         P1["/ Landing Page"]
         P2["/auth/callback OAuth"]
-        P3["/onboarding Photo Upload"]
+        P3["/onboarding Verified Details"]
     end
 
     subgraph StudentPortal ["Student Portal (/student/*)"]
         S1["/student/dashboard"]
-        S2["/student/card Digital Pass"]
+        S2["/student/qr-code Student QR Code"]
         S3["/student/slots Browse & Queue"]
         S4["/student/transfer Request Swap"]
         S5["/student/attendance History"]
         S6["/student/complaints Tickets"]
     end
 
-    subgraph TrainerPortal ["Trainer Portal (/trainer/*)"]
-        T1["/trainer/scanner Camera Scan"]
-        T2["/trainer/manual AP Fallback"]
-        T3["/trainer/roster Live Sessions"]
+    subgraph StaffPortal ["Gym Staff Portal (/staff/*)"]
+        T1["/staff/scanner Camera Scan"]
+        T2["/staff/manual-checkin AP Fallback"]
+        T3["/staff/session-roster Live Sessions"]
     end
 
     subgraph AdminPortal ["Sports Administrator (/admin/*)"]
@@ -37,15 +37,14 @@ graph LR
         A3["/admin/windows Reg Windows"]
         A4["/admin/transfers Swap Approval"]
         A5["/admin/attendance Audit & Fix"]
-        A6["/admin/absence Retention Engine"]
-        A7["/admin/photos Review Center"]
-        A8["/admin/complaints Help Desk"]
-        A9["/admin/imports Excel Hub"]
-        A10["/admin/reports Export"]
+        A6["/admin/absence Absence Monitoring"]
+        A7["/admin/complaints Help Desk"]
+        A8["/admin/imports Excel Hub"]
+        A9["/admin/reports Export"]
     end
 
     PublicAuth --> StudentPortal
-    PublicAuth --> TrainerPortal
+    PublicAuth --> StaffPortal
     PublicAuth --> AdminPortal
 ```
 
@@ -59,16 +58,12 @@ graph LR
 - **Secondary Actions:** `View Official Timetable`, `Campus Access Itinerary`, `FAQ Accordion`.
 - **Footer:** Formal institutional mark: *Department of Physical Education & Sports Facilities, SRM University-AP*, with open-license picture attributions.
 
-### 2.2 Student Onboarding & Initial Photo Upload (`/onboarding`)
-- **Trigger:** First-time login by a provisioned student whose account has no approved photograph.
-- **Form Elements:**
-  - Read-only official identity fields (Full Name, AP Number, College Email, Department).
-  - Photograph Upload Box: Drag-and-drop or device camera upload (`JPEG`, `PNG`, max 5MB).
-  - Guidance Checklist: Plain neutral background, direct camera angle, student face clearly visible, no sunglasses/caps.
-- **State Behavior:**
-  - Upload triggers client-side image dimension verification and sends file to `POST /api/v1/students/photo/upload`.
-  - Account status remains `PENDING_PHOTO_APPROVAL`.
-  - Student sees a confirmation slate: *"Your photograph has been submitted to the Sports Department for verification. You will be notified once reviewed."*
+### 2.2 Student Profile Onboarding (`/onboarding`)
+- **Trigger:** First-time login by a provisioned student after Google OAuth authentication.
+- **Displayed Details:**
+  - Read-only official identity fields from the verified student record: Student Full Name, AP Number, and College Email.
+  - Active Allocation Status indicator: Displays whether the student currently holds an active gym allocation or needs to apply during an open registration window.
+  - Guidance Notice: If student data cannot be matched against provisioned institutional records, displays a clear prompt: *"Student record not found. Please contact the Sports Department with your AP Number."*
 
 ---
 
@@ -77,7 +72,7 @@ graph LR
 ### 3.1 Student Dashboard (`/student/dashboard`)
 - **Hero Summary Card:**
   - Displays current active slot: e.g., **C. V. Raman Central Complex · 17:45 – 18:45**.
-  - One-tap button: `View Turnstile Pass` (opens Digital Gym Card).
+  - One-tap button: `View Turnstile Pass` (opens Student QR Code page).
   - Quick status badge: `ACTIVE`, `TRANSFER_REQUESTED`, or `WAITLISTED (#3 in queue)`.
 - **Attendance & Absence Barometer:**
   - Weekly streak counter (e.g., `4 of 5 sessions attended this week`).
@@ -89,17 +84,18 @@ graph LR
 - **Recent Announcements Carousel:**
   - Important notices published by Sports Administration (e.g., *"C. V. Raman closed on Saturday for Inter-University Badminton"*).
 
-### 3.2 Digital Gym Card & Dynamic QR (`/student/card`)
-- **Layout:** Centered tactile paper card object matching physical dimensions.
-- **Interactive QR Code:**
-  - Encodes high-entropy opaque hash token (`#tok-srm-c4d871c2-1745`).
-  - Circular or progress-bar countdown timer showing remaining seconds (30s refresh).
-  - Seamless background rotation without card re-rendering.
-- **Offline / PWA Banner:**
-  - If network drops, service worker serves cached credentials with an amber advisory: *"Offline token active. Valid for current scheduled session."*
-- **Action Toolbar:**
-  - `Download Offline Pass` (generates signed local pass).
-  - `Report Scanner Issue` (routes directly to complaints with session pre-filled).
+### 3.2 Student QR Code Display (`/student/qr-code`)
+- **Access Rule:** Available to students who have an active gym allocation for the selected or upcoming session.
+- **QR Payload Fields (Encodes 4 core verification attributes):**
+  1. Student AP number (e.g. `AP21110010123`)
+  2. College email (e.g. `aarav_raj@srmap.edu.in`)
+  3. Session date (e.g. `2026-10-28`)
+  4. Slot timing (e.g. `17:45 - 18:45`)
+- **Card Presentation:**
+  - Displays AP number, college email, slot timing, and session date cleanly alongside the QR graphic.
+  - Rendered client-side via `qrcode.react`.
+- **Backend Validation Principle:** The QR payload is treated as untrusted input. When scanned at the turnstile desk, the backend verifies all four fields against authoritative student, allocation, gym, and session records before recording attendance.
+- **PWA Security:** Do not cache QR codes or sensitive student information for offline use.
 
 ### 3.3 Available Slot Browser & FCFS Application (`/student/slots`)
 - **Facility Tab Navigation:**
@@ -109,8 +105,8 @@ graph LR
   - **Live Capacity Gauge:** e.g., `106 / 120 Allocated` with visual capacity fill.
   - **Action Button States:**
     - `Apply for Slot` (when capacity > 0 and student has no active allocation).
-    - `Join FCFS Waitlist` (when capacity == 120; displays current queue depth, e.g. *8 students waiting*).
     - `Request Slot Transfer` (when student already has an active allocation elsewhere).
+    - `Join FCFS Waitlist` (when capacity == 120; displays current queue position, e.g. *8 students waiting*).
     - `Currently Allocated` (disabled state for student's own slot).
 
 ### 3.4 Slot Transfer Request Engine (`/student/transfer`)
@@ -142,40 +138,38 @@ graph LR
 
 ---
 
-## 4. Trainer / Gym Staff Portal Screens (`/trainer/*`)
+## 4. Gym Staff QR Scanner App (`/staff/*`)
 
-### 4.1 Turnstile Camera Scanner (`/trainer/scan`)
+### 4.1 Camera QR Scanner (`/staff/scanner`)
 - **Optimized for Tablets & Phones:**
   - Fullscreen camera viewfinder powered by `html5-qrcode`.
   - Lens toggle button (Front / Back camera) + Torch/Flashlight toggle where supported.
+  - Scans QR payload containing AP number, college email, session date, and slot timing.
+  - Transmits scanned payload to `POST /api/v1/attendance/scan` for server-side validation.
+
+### 4.2 Scan Result & Attendance Confirmation
 - **Multi-Point Verification Overlay (<100ms response):**
-  - When a valid QR is scanned, camera pauses and displays the Student Card Overlay:
-    - Official Student Photograph (large, clear).
-    - Student Full Name & AP Number.
-    - Assigned Facility & Scheduled Session Batch.
-    - Verification Status: **`ELIGIBLE & SCHEDULED NOW`**.
-  - **Single-Tap Actions:**
+  - Displays verified student and session information after backend validation:
+    - Student Full Name & AP Number from official record.
+    - College Email.
+    - Assigned Gym Complex & Slot Timing (verified from official allocation).
+    - Session Date & Current Attendance Status.
+  - **Action Controls:**
     - `[CONFIRM ENTRY]` (Records attendance as `PRESENT`, emits success chime, resumes camera).
-    - `[REJECT / FLAG]` (Prompts for issue note, logs incident).
-- **Error & Exception Displays:**
-  - *Duplicate Scan:* Red vibration + bold alert: *"Already Checked In at 17:48 by Trainer John."*
-  - *Wrong Slot Batch:* Amber alert: *"Scheduled for 19:00 Batch (Current Session: 17:45)."*
-  - *Expired / Invalid Token:* Red alert: *"Token expired or invalid. Ask student to refresh card."*
+    - `[REJECT]` (Prompts for issue note, logs incident).
+- **Server-Side Exception Guards:**
+  - Reject unknown AP number or AP/email mismatch.
+  - Reject inactive allocation, wrong gym/slot, or wrong session date.
+  - Show clear `Already Checked In` message for duplicate scans.
 
-### 4.2 Manual Fallback Check-In (`/trainer/manual`)
-- **Use Case:** Student phone battery dead, damaged screen, or camera read error.
-- **Workflow:**
-  1. Trainer inputs student AP Number (e.g. `AP21110010123`).
-  2. System fetches official record, current allocation, and displays verified student photograph.
-  3. Trainer verifies physical presence against screen photo.
-  4. Mandatory reason dropdown: `Phone Battery Dead`, `Screen Reflection / QR Damaged`, `Network Failure`.
-  5. One-tap button: `Log Manual Attendance` (records check-in with `MANUAL_FALLBACK` flag and trainer's staff ID).
-
-### 4.3 Session Live Roster (`/trainer/roster`)
-- **Live Attendance Dashboard for Current Batch:**
-  - Header counters: `Total Capacity: 120` · `Checked In: 94` · `Pending / Absent: 26`.
-  - Search filter by student name or AP number.
-  - Instant toggle to mark an un-scanned student as `EXCUSED` with reason.
+### 4.3 Manual AP Lookup & Session Roster (`/staff/manual-checkin`, `/staff/session-roster`)
+- **Manual AP Fallback (`/staff/manual-checkin`):**
+  - Authorized search by AP number when camera or student phone is unavailable.
+  - Displays verified student record and current allocation details.
+  - Mandatory reason selector (`Phone Battery Dead`, `Screen Damaged / Camera Reflection`, `Network Offline`).
+  - Records check-in with `MANUAL_FALLBACK` audit flag.
+- **Session Live Roster (`/staff/session-roster`):**
+  - Live attendance list for active session batch with counts: `Capacity: 120` · `Checked In: 94` · `Absent: 26`.
 
 ---
 
@@ -185,8 +179,7 @@ graph LR
 - **Executive Metric Cards:**
   - `Live Campus Occupancy`: Real-time percentage across all 4 gyms.
   - `Daily Check-In Rate`: Today's completed sessions vs expected allocations.
-  - `At-Risk Students`: Count of students with 3 consecutive unexcused absences.
-  - `Pending Approvals`: Transfer requests (e.g. 14) + Photo change requests (e.g. 6).
+  - `Pending Queues`: New slot applications and slot-change requests.
 - **Facility Status Grid:**
   - Visual load bars for C. V. Raman, Ganga, Krishna, and Narmada.
 
@@ -222,16 +215,16 @@ graph LR
   - **Mandatory Audit Compliance:** Admin must provide a written reason and select category (`Medical Certificate Submitted`, `Sports Representative Duty`, `Scanner Hardware Failure`).
   - System logs edit into immutable `attendance_corrections` table with timestamp and admin ID.
 
-### 5.6 Absence Policy & Retention Monitor (`/admin/absence`)
+### 5.6 Absence Monitoring and Allocation Management (`/admin/absence`)
 - **Policy Configuration:**
-  - Set consecutive absence limit (Default: 4 sessions).
-  - Set warning notification threshold (Default: 2 sessions).
+  - Configurable consecutive absence threshold under the approved Sports Department policy (e.g., 4 consecutive absences).
+  - Warning alert thresholds (e.g., 2 consecutive absences).
 - **At-Risk Student Queue:**
-  - Shows students currently at 2 or 3 consecutive absences.
-  - One-click action: `Send Warning Reminder (Email + In-App)`.
-- **Reclamation Log:**
-  - Shows automatically terminated allocations.
-  - Shows instant FCFS waitlist promotion triggered by the reclaimed seat.
+  - Shows students approaching or meeting warning/termination thresholds.
+  - One-click trigger: `Send Warning Alert (Email + In-App)`.
+  - Termination history and vacancy release tracking.
+  - Guarantees idempotent operations so repeated runs do not emit duplicate warnings or duplicate terminations.
+  - Preserves complete allocation and attendance history.
 
 ### 5.7 Bulk Data & Excel Imports Hub (`/admin/imports`)
 - **Import Wizard:**

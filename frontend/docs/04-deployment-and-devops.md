@@ -222,11 +222,8 @@ VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 VITE_CAMPUS_DOMAIN=srmap.edu.in
 
 # ── Feature Flags & Config ────────────────────────────────────────────────────
-# Enable PWA offline digital card caching
+# Enable PWA Add-to-Home-Screen installability
 VITE_ENABLE_PWA=true
-
-# Turnstile QR token refresh frequency (seconds)
-VITE_QR_ROTATION_SECONDS=30
 
 # Campus time zone lock
 VITE_TIMEZONE=Asia/Kolkata
@@ -234,11 +231,11 @@ VITE_TIMEZONE=Asia/Kolkata
 
 ---
 
-## 6. Turnstile Scanner Camera Requirements (HTTPS Enforcement)
+## 6. Gym Staff Scanner Camera Requirements (HTTPS Enforcement)
 
 > [!IMPORTANT]
 > Modern mobile and desktop browsers (iOS Safari, Android Chrome, Edge) **block camera access on non-secure HTTP connections**, with the sole exception of `localhost`.
-> When deploying to campus servers or cloud environments, **HTTPS is mandatory** for the Trainer Turnstile Scanner to operate.
+> When deploying to campus servers or cloud environments, **HTTPS is mandatory** for the Gym Staff Scanner to operate.
 
 ### Production SSL / TLS Termination Options
 1. **Nginx Reverse Proxy with Let's Encrypt Certbot:** Automatically provisions free SSL certificates for campus subdomains (e.g., `gym.srmap.edu.in`).
@@ -246,16 +243,16 @@ VITE_TIMEZONE=Asia/Kolkata
 
 ---
 
-## 7. Progressive Web App (PWA) Offline Pass
+## 7. Progressive Web App (PWA) Installability
 
-For students entering underground gym facilities or areas with poor cellular reception, the digital card supports offline validation:
+The web application supports Progressive Web App (PWA) installation for home screen access on mobile devices and desk tablets:
 
 ### `manifest.json`
 ```json
 {
   "name": "GymSlot — SRM University-AP",
   "short_name": "GymSlot",
-  "start_url": "/student/card",
+  "start_url": "/student/dashboard",
   "display": "standalone",
   "background_color": "#eeecea",
   "theme_color": "#2e4a3e",
@@ -274,10 +271,13 @@ For students entering underground gym facilities or areas with poor cellular rec
 }
 ```
 
-### Service Worker Caching Strategy
-- **Core Assets (`/`, `index.html`, CSS, Fonts):** Cache-First, Stale-While-Revalidate.
-- **Student Profile & Active Card Details:** Network-First with fallback to last verified cache.
-- **Dynamic QR Tokens:** Generated locally or refreshed via network; offline mode displays the signed pre-fetched token for the scheduled session.
+### Service Worker Caching & Security Strategy
+> [!CAUTION]
+> **Zero Offline QR Caching:** Do not cache QR codes or sensitive student records for offline use. Attendance validation requires authoritative, server-verified checks against live database records.
+
+- **Static App Shell (`/`, CSS, Fonts, Images):** Cache-First with Stale-While-Revalidate updates.
+- **API & Attendance Requests (`/api/v1/*`):** Strictly Network-Only. Excluded from all service worker caches to prevent replay attacks or stale verification states.
+- **Service Worker (`sw.js`):** Employs `Cache-Control: no-cache, no-store, must-revalidate` so updates activate immediately across devices.
 
 ---
 

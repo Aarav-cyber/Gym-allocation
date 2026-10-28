@@ -101,53 +101,50 @@ frontend/
 │   ├── manifest.json           # Progressive Web App manifest
 │   └── sw.js                   # Service worker for offline gym card caching
 ├── src/
-│   ├── app/                    # Next.js App Router / Page Roots
-│   │   ├── (public)/           # Public routes (Landing, Auth)
-│   │   │   ├── page.tsx        # Anti-slop landing page
-│   │   │   ├── login/page.tsx  # Google OAuth initiation
-│   │   │   └── auth/callback/  # OAuth redirect handler
-│   │   ├── (portals)/          # Authenticated routes (Guarded)
-│   │   │   ├── student/        # Student Portal screens
-│   │   │   │   ├── dashboard/
-│   │   │   │   ├── card/       # Digital gym card & QR
-│   │   │   │   ├── slots/      # Available slots & waitlists
-│   │   │   │   ├── transfer/   # Slot transfer engine
-│   │   │   │   ├── attendance/ # History & absence barometer
-│   │   │   │   └── complaints/ # Support tickets
-│   │   │   ├── trainer/        # Gym Staff / Trainer screens
-│   │   │   │   ├── scanner/    # Turnstile camera scanner
-│   │   │   │   ├── manual/     # Fallback AP number search
-│   │   │   │   └── roster/     # Real-time session roster
-│   │   │   ├── admin/          # Sports Administrator screens
-│   │   │   │   ├── dashboard/
-│   │   │   │   ├── facilities/ # Gyms, slots, schedules
-│   │   │   │   ├── windows/    # Registration windows
-│   │   │   │   ├── transfers/  # Transfer reviews
-│   │   │   │   ├── attendance/ # Audit & correction modal
-│   │   │   │   ├── absence/    # Retention & reclamation
-│   │   │   │   ├── complaints/ # Staff assignment & triage
-│   │   │   │   ├── imports/    # Excel slot & student import
-│   │   │   │   └── reports/    # CSV/Excel analytics export
-│   │   │   └── super-admin/    # System Admin screens
-│   │   │       ├── staff/      # Staff role provisioning
-│   │   │       ├── settings/   # College domain & config
-│   │   │       └── audit/      # Append-only audit logs
-│   │   ├── layout.tsx          # Root layout with font injection
-│   │   └── error.tsx           # Institutional error boundary
+│   ├── pages/                  # React Router v6 Page Routes
+│   │   ├── public/             # Public routes
+│   │   │   ├── LandingPage.tsx # Anti-slop landing page
+│   │   │   ├── Login.tsx       # Google OAuth initiation
+│   │   │   └── AuthCallback.tsx# OAuth redirect handler
+│   │   ├── student/            # Student Portal screens
+│   │   │   ├── Onboarding.tsx  # Verified student details & status
+│   │   │   ├── Dashboard.tsx   # Allocation overview & streak
+│   │   │   ├── QRCodePage.tsx  # Student QR code (AP#, email, date, time)
+│   │   │   ├── SlotBrowser.tsx # Available slots & waitlists
+│   │   │   ├── SlotTransfer.tsx# Protected slot transfer engine
+│   │   │   ├── Attendance.tsx  # History & absence barometer
+│   │   │   └── Complaints.tsx  # Support tickets
+│   │   ├── staff/              # Gym Staff / Trainer screens
+│   │   │   ├── QRScannerPage.tsx# Camera QR scanner
+│   │   │   ├── ManualCheckInPage.tsx# Fallback AP number lookup
+│   │   │   └── SessionRosterPage.tsx# Real-time session roster
+│   │   ├── admin/              # Sports Administrator screens
+│   │   │   ├── AdminDashboard.tsx
+│   │   │   ├── FacilitiesPage.tsx# Gyms, slots, schedules
+│   │   │   ├── RegistrationWindowsPage.tsx
+│   │   │   ├── TransfersPage.tsx # Transfer reviews
+│   │   │   ├── AttendanceAuditPage.tsx# Audit & correction modal
+│   │   │   ├── AbsenceMonitorPage.tsx # Retention & reclamation
+│   │   │   ├── ComplaintsPage.tsx # Staff assignment & triage
+│   │   │   ├── BulkImportPage.tsx # Excel slot & student import
+│   │   │   └── ReportsExportPage.tsx # CSV/Excel analytics export
+│   │   └── super-admin/        # System Admin screens
+│   │       ├── StaffManagementPage.tsx # Staff role provisioning
+│   │       ├── SystemSettingsPage.tsx  # College domain & config
+│   │       └── AuditTrailPage.tsx      # Append-only audit logs
 │   ├── components/             # Reusable UI component library
 │   │   ├── ui/                 # Atomic design tokens (button, input, badge)
 │   │   ├── feedback/           # Alert boxes, toasts, modals
-│   │   ├── gym-card/           # Digital gym card & QR rotating token
+│   │   ├── qr/                 # Student QR code display component
 │   │   ├── scanner/            # Camera scanner viewport & verification card
 │   │   ├── tables/             # Headless virtualized table components
 │   │   └── layout/             # Masthead, role navigations, footers
 │   ├── hooks/                  # Custom React hooks
 │   │   ├── useAuth.ts          # Session, user profile, role checks
-│   │   ├── useQRToken.ts       # Rotating 30s token generator & poller
-│   │   ├── useScanner.ts       # Camera lifecycle & audio feedback
+│   │   ├── useQRScanner.ts     # Camera lifecycle & scan handler
 │   │   └── useDebounce.ts      # Input debounce for search & filters
 │   ├── lib/                    # Core utilities & API clients
-│   │   ├── api-client.ts       # Typed Axios / Fetch wrapper with interceptors
+│   │   ├── api-client.ts       # Typed Axios wrapper with interceptors
 │   │   ├── endpoints.ts        # Centralized REST endpoint catalog
 │   │   ├── tokens.ts           # Token storage & expiry helpers
 │   │   └── formatters.ts       # Date, time, AP number, capacity formatters
@@ -157,11 +154,11 @@ frontend/
 │   │   └── globals.css         # Utility classes, animation layers
 │   └── types/                  # TypeScript interface declarations
 │       ├── api.ts              # Request/response envelope types
-│       ├── student.ts          # Student profile, digital card, tokens
+│       ├── student.ts          # Student profile, allocation, QR
 │       ├── slot.ts             # Gyms, slots, schedules, capacity
 │       ├── attendance.ts       # Sessions, logs, corrections
 │       └── complaints.ts       # Tickets, status, comments
-├── Dockerfile                  # Multi-stage production container
+├── Dockerfile                  # Multi-stage production container (Nginx)
 ├── nginx.conf                  # Production reverse proxy config
 ├── tsconfig.json
 └── package.json
@@ -177,7 +174,7 @@ Authentication strictly follows Google OAuth 2.0 / OpenID Connect restricted to 
 sequenceDiagram
     autonumber
     actor Student as Student Browser
-    participant FE as GymSlot Frontend
+    participant FE as GymSlot Frontend (React)
     participant Google as Google Identity Services
     participant GW as API Gateway (:8000)
     participant Auth as Identity Service
@@ -197,15 +194,15 @@ sequenceDiagram
 ```
 
 ### Role-Based Route Guards (RBAC)
-Routes are protected by a client-side middleware / layout guard with strict fallback handling:
-- **`STUDENT`**: Restricted to `/student/*`. Attempts to access `/trainer/*` or `/admin/*` trigger a `403 Forbidden` slate.
-- **`TRAINER`**: Restricted to turnstile scanner (`/trainer/*`) and personal profile.
+Routes are protected by a client-side React Router guard with strict fallback handling:
+- **`STUDENT`**: Restricted to `/student/*`. Attempts to access `/staff/*` or `/admin/*` trigger a `403 Forbidden` slate.
+- **`TRAINER` / `STAFF`**: Restricted to gym staff scanner (`/staff/*`) and personal profile.
 - **`ADMIN`**: Access to sports administration (`/admin/*`), slots, attendance audits, and reporting.
-- **`SUPER_ADMIN`**: Full platform authority including staff grants (`/super-admin/staff`) and institutional configuration.
+- **`SUPER_ADMIN`**: Full platform authority including staff grants (`/super-admin/*`) and institutional configuration.
 
 ### Session Expiry & Token Refresh
 1. Access tokens are short-lived (60 minutes).
-2. The Axios/Fetch client intercepts outgoing requests:
+2. The Axios client intercepts outgoing requests:
    ```typescript
    // lib/api-client.ts
    apiClient.interceptors.response.use(
@@ -239,8 +236,9 @@ All server data uses structured cache keys to support deterministic invalidation
 
 | Query Key Pattern | Cache Duration (`staleTime`) | Revalidation Trigger |
 | :--- | :--- | :--- |
-| `['student', 'profile']` | 15 minutes | Photo change approval, account update |
-| `['student', 'card']` | 30 seconds | Allocation transfer, session check-in |
+| `['student', 'profile']` | 15 minutes | Account update |
+| `['student', 'allocation']` | 1 minute | Allocation transfer, window change |
+| `['student', 'qr']` | 30 seconds | Session selection, slot change |
 | `['slots', 'facilities']` | 5 minutes | Slot update, window status change |
 | `['slots', 'available', gymId]` | 15 seconds | Slot application, waitlist promotion |
 | `['attendance', 'history']` | 2 minutes | Check-in event, admin correction |
@@ -275,67 +273,40 @@ const applySlotMutation = useMutation({
 
 ---
 
-## 6. Secure Opaque QR Token & Digital Gym Card Architecture
+## 6. Student QR Code Architecture
 
-### 6.1 Token Generation & Anti-Proxy Guarantee
-Per Section 4 of the PRD:
-- The QR code contains **no readable PII** (no AP number, student name, email, or photo reference).
-- It encodes a high-entropy cryptographically secure random opaque token (e.g., `#tok-srm-c4d871c2-1745`).
-- The token is bound on the backend to:
-  1. The authenticated `student_id`
-  2. The `allocation_id`
-  3. The current `attendance_session_id`
-- Tokens have a **strict 30-second validity window**. The client auto-rotates the token seamlessly:
-  ```typescript
-  // hooks/useQRToken.ts
-  export function useQRToken() {
-    const [token, setToken] = useState<string>('');
-    const [expiresIn, setExpiresIn] = useState<number>(30);
-
-    const fetchToken = async () => {
-      const res = await api.get('/api/v1/students/gym-card/token');
-      setToken(res.data.token_hash);
-      setExpiresIn(30);
-    };
-
-    useEffect(() => {
-      fetchToken();
-      const interval = setInterval(() => {
-        setExpiresIn((prev) => {
-          if (prev <= 1) {
-            fetchToken();
-            return 30;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-      return () => clearInterval(interval);
-    }, []);
-
-    return { token, expiresIn };
-  }
-  ```
-
-### 6.2 Pre-Signed S3 Photo Loading
-Student photos are stored in private object storage. The frontend never accesses public S3 URLs:
-- The backend generates short-lived (5-minute) pre-signed URLs for authenticated users.
-- On card presentation, the pre-signed image is cached in memory for the duration of the turnstile interaction.
+### 6.1 QR Payload Specification
+Per the updated requirements:
+- The QR code is generated for students who have an active gym allocation.
+- **QR Payload Fields:**
+  1. Student AP number (e.g. `AP21110010123`)
+  2. College email (e.g. `aarav_raj@srmap.edu.in`)
+  3. Session date (e.g. `2026-10-28`)
+  4. Slot timing (e.g. `17:45 - 18:45`)
+- Displayed alongside the QR code: AP number, college email, slot timing, and session date.
+- Rendered using `qrcode.react`.
+- **Validation Principle:** The QR data is treated as untrusted input by the backend. When scanned by staff, the backend validates the payload against authoritative student, allocation, gym, and session records before recording attendance.
+- **PWA Security:** Do not cache QR codes or sensitive student information for offline use.
 
 ---
 
-## 7. Turnstile Scanner Engine (`html5-qrcode`)
+## 7. Gym Staff QR Scanner Engine (`html5-qrcode`)
 
-The trainer desk scanner runs directly within mobile Chrome/Safari and desktop browser tablets without requiring native store apps:
-- Leverages `html5-qrcode` library configured for 15 frames per second.
-- Automatic camera device selection prioritizing the environment-facing (rear) lens.
-- Sound & visual feedback:
-  - Green pulse + chime on valid verification.
-  - Red vibration + buzz on duplicate check-in or expired token.
-- Multi-point verification modal renders in `<100ms`:
-  1. Official Student Photograph (large, high-contrast)
-  2. Full Name & AP Number
-  3. Assigned Gym Complex & Time Batch
-  4. Instant One-Tap "Confirm Entry" / "Reject Entry" button.
+The staff scanner operates on mobile devices and desk tablets via `html5-qrcode`:
+- Camera selection and flashlight toggle where supported.
+- Scans QR payload containing AP number, college email, session date, and slot timing.
+- Transmits scanned payload to `POST /api/v1/attendance/scan`.
+- **Multi-Point Verification Overlay:**
+  1. Student Name and AP Number from official record.
+  2. College Email.
+  3. Assigned Gym and Slot Timing (verified from official allocation).
+  4. Session Date and Attendance Status.
+  5. Action buttons: `[CONFIRM ENTRY]` and `[REJECT]`.
+- **Server-Side Exception Guards:**
+  - Reject unknown AP number or AP/email mismatch.
+  - Reject inactive allocation, wrong gym/slot, or wrong session date.
+  - Show clear `Already Checked In` message for duplicate scans.
+- **Manual Fallback:** Authorized AP number lookup when the camera or student phone is unavailable.
 
 ---
 

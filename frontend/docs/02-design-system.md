@@ -123,41 +123,43 @@ Used in the facility browser and registration window manager:
 </div>
 ```
 
-### 4.2 The Digital Gym Card Object (`data-ui`)
-The central artefact of the platform. Rendered on both student smartphone screens and turnstile scanner overlays:
+### 4.2 The Student QR Code & Allocation Card (`data-ui`)
+The central verification artifact of the platform. Rendered on student screens (`/student/qr-code`) and presented at the gym desk:
 - **Aspect Ratio:** Fixed tactile card proportions (approx. 4:5).
-- **Surface:** Warm paper `#e8e5e0` with clean micro-perforated top header.
-- **Student Photograph:** High-contrast 105×125px portrait with authentic bevel.
-- **Dynamic QR Code:** 120×120px opaque crypto-hash vector with 30s countdown bar.
-- **Safety Indicator:** High-visibility green badge `TURNSTILE VALID`.
+- **Surface:** Warm paper `#e8e5e0` with clean university header.
+- **Verified Identity:** Official AP Number, Student Name, and College Email.
+- **Session Allocation Details:** Assigned Gym, Slot Timing, and Session Date.
+- **QR Code Payload:** High-density vector QR encoding AP number, college email, session date, and slot timing (validated by backend on scan).
+- **Safety Indicator:** High-visibility green badge `ALLOCATION ACTIVE`.
 
 ```html
-<div class="digital-gym-card" data-ui>
+<div class="student-qr-card" data-ui>
   <div class="card-top-rule">
     <span class="card-uni">SRM University-AP</span>
-    <span class="card-badge-status status-valid">Turnstile Valid</span>
+    <span class="card-badge-status status-valid">Allocation Active</span>
   </div>
   <div class="card-body">
-    <div class="card-photo-box">
-      <img src="/api/v1/students/photo/presigned" alt="Aarav Raj" class="card-student-photo" />
-      <span class="card-photo-caption">Official Photo</span>
-    </div>
     <div class="card-details">
       <h3 class="card-student-name">Aarav Raj</h3>
       <p class="card-ap-number">AP21110010123</p>
+      <p class="card-email">aarav_raj@srmap.edu.in</p>
       <dl class="card-meta-list">
         <dt>Assigned Gym</dt>
         <dd>C. V. Raman Complex</dd>
         <dt>Slot Timing</dt>
         <dd>17:45 – 18:45</dd>
+        <dt>Session Date</dt>
+        <dd>2026-10-28</dd>
       </dl>
     </div>
   </div>
   <div class="card-qr-box">
-    <canvas id="qr-canvas" class="qr-code-graphic"></canvas>
-    <div class="token-timer-bar">
-      <span class="token-hash-label">#tok-srm-c4d871c2-1745</span>
-      <span class="token-countdown nums">24s</span>
+    <!-- Rendered via qrcode.react -->
+    <div class="qr-canvas-wrapper">
+      <svg class="qr-code-graphic"></svg>
+    </div>
+    <div class="qr-caption">
+      <span class="qr-note">Scan at gym turnstile desk for entry verification</span>
     </div>
   </div>
 </div>
