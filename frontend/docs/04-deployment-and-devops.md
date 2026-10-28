@@ -8,15 +8,15 @@
 
 ## 1. Overview of Deployment Architecture
 
-The **GymSlot** frontend is designed to be **lightweight, stateless, and container-native**. It can be deployed in two production run-modes depending on infrastructure preference:
+The **GymSlot** frontend is built as a **pure React.js Single-Page Application (Vite + React 18+)**. It is lightweight, stateless, and container-native, compiling to optimized static HTML, CSS, and JS:
 
 ```mermaid
 graph TD
     Client["User Browsers & Turnstile Tablets"]
     
-    subgraph DeploymentModes ["Production Run-Modes"]
-        ModeA["Option A (Recommended for Static/SPA):<br/>Nginx Alpine Container (Port 80/443)<br/>Image Size: ~28MB"]
-        ModeB["Option B (Next.js Standalone SSR):<br/>Node.js 20 Alpine Runner (Port 3000)<br/>Image Size: ~120MB"]
+    subgraph DeploymentModes ["Production Run-Modes (React.js SPA)"]
+        ModeA["Primary (Recommended):<br/>Nginx Unprivileged Alpine Container (Port 8080 / 80)<br/>Image Size: ~28MB (Zero Node Runtime in Prod)"]
+        ModeB["Alternative:<br/>Campus Static CDN / S3-compatible Object Storage + CloudFront"]
     end
 
     subgraph InternalNetwork ["Docker Compose / K8s Internal Network"]
@@ -27,7 +27,7 @@ graph TD
     Client -->|HTTPS Port 443| ModeA
     Client -->|HTTPS Port 443| ModeB
     ModeA -->|Internal Reverse Proxy /api/v1| Gateway
-    ModeB -->|Internal API Calls /api/v1| Gateway
+    ModeB -->|Direct HTTPS /api/v1| Gateway
     Gateway --> BackendSvc
 ```
 

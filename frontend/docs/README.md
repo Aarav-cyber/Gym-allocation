@@ -10,7 +10,8 @@ This documentation suite translates all business logic from [`REQUIREMENTS.md`](
 
 | Document | Title | Purpose & Scope |
 | :--- | :--- | :--- |
-| **[01. Frontend Architecture](01-frontend-architecture.md)** | Core Architecture & Stack | Framework choice (Next.js 14+ / React + Vite), folder structure, state management (TanStack Query + Zustand), API Gateway integration (`/api/v1`), Google OAuth 2.0 / JWT session lifecycle, and security controls. |
+| **[Frontend Implementation Plan](frontend-implementation-plan.md)** | **Step-by-Step Execution Plan** | **13-phase roadmap with atomic deliverables and user verification checkpoints for reviewing work after every single step.** |
+| **[01. Frontend Architecture](01-frontend-architecture.md)** | Core Architecture & Stack | Pure React.js (Vite + React 18+ SPA), folder structure, state management (TanStack Query + Zustand), API Gateway integration (`/api/v1`), Google OAuth 2.0 / JWT session lifecycle, and security controls. |
 | **[02. Design System](02-design-system.md)** | Anti-Slop Visual Identity | Visual tokens, collegiate athletic palette (`three-stones` + forest green `#2e4a3e`), typography (`Zilla Slab` + tabular sans), tactile stationery surfaces (`page-is-the-object`), `data-ui` rules, and WCAG AAA accessibility. |
 | **[03. Screens & Workflows](03-screens-and-workflows.md)** | Complete UX Specifications | Screen-by-screen UX specifications across all 4 user roles: Student Portal (Digital Card, QR rotation, transfers, waitlists), Trainer Scanner (Turnstile camera, photo overlay, manual fallback), Sports Admin Dashboard (facilities, slots, attendance audit, absence reclamation, complaints, Excel imports), and Super Admin. |
 | **[04. Deployment & DevOps](04-deployment-and-devops.md)** | Deploy-Friendly Production Guide | Production containerization (multi-stage Dockerfile, Nginx alpine runner), Docker Compose service definition, environment variables, camera permissions policy for QR scanning, PWA offline card setup, and CI/CD GitHub Actions pipeline. |
@@ -24,7 +25,7 @@ graph TD
     Client["User Browser / Mobile PWA<br/>(Student, Trainer, Admin)"]
     
     subgraph FrontendApp ["Frontend Application Container (Port 3000 / 80)"]
-        UI["React / Next.js UI Layer<br/>(Zilla Slab + Anti-Slop Design System)"]
+        UI["React.js SPA UI Layer (Vite)<br/>(Zilla Slab + Anti-Slop Design System)"]
         State["State Layer<br/>(TanStack Query + Zustand)"]
         Scanner["Camera Scanner Module<br/>(html5-qrcode + PWA)"]
         QRGen["Dynamic QR Token Engine<br/>(Client Re-renderer + Socket)"]

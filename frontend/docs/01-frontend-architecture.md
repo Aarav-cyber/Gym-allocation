@@ -20,8 +20,8 @@ graph TB
         DesktopAdmin["Admin Desktop Workstation<br/>(Management, Audit, CSV/Excel Imports)"]
     end
 
-    subgraph FrontendApp ["Frontend Application Core (Next.js / React + TypeScript)"]
-        Router["App Router & Role Guards<br/>(/student, /trainer, /admin)"]
+    subgraph FrontendApp ["Frontend Application Core (Pure React.js + Vite + TS)"]
+        Router["React Router v6 & Role Guards<br/>(/student, /trainer, /admin)"]
         AuthStore["Auth & Session Store<br/>(Google OAuth 2.0 + JWT)"]
         DataLayer["Server State Cache<br/>(TanStack Query v5)"]
         UIComponents["Anti-Slop Design System<br/>(Zilla Slab + Tactile Tokens)"]
@@ -72,11 +72,11 @@ graph TB
 
 ## 2. Technology Stack & Decision Rationale
 
-| Category | Recommended Stack | Production Alternatives | Rationale & Tradeoffs |
-| :--- | :--- | :--- | :--- |
-| **Framework** | **Next.js 14+ (App Router)** | **Vite + React 18 (SPA)** | Next.js App Router provides Server-Side Rendering (SSR) for the public landing page (crucial for SEO and initial load speeds) alongside client-side route layouts for authenticated portals. If deploying as a pure static bundle behind Nginx, Vite + React is fully compatible. |
-| **Language** | **TypeScript 5.x** | — | Strict typing across all API payloads, domain events, form schemas, and user roles prevents runtime errors. |
-| **Styling & CSS** | **Vanilla CSS Tokens + CSS Modules** | **Tailwind CSS (configured with design tokens)** | High aesthetic fidelity without framework bloat. Adheres strictly to the `page-is-the-object` tactile design system, fluid `clamp()` type scaling, and zero-slop layout rules. |
+| Category | Recommended Stack | Production Rationale |
+| :--- | :--- | :--- |
+| **Framework** | **React.js 18+ (SPA with Vite)** | **Pure React.js single-page application with React Router v6.** Maximizes build speed, eliminates SSR node server dependencies, enables instant client navigation, and compiles to lightweight static files served directly by Nginx or S3/CloudFront. |
+| **Language** | **TypeScript 5.x** | Strict typing across all API payloads, domain events, form schemas, and user roles prevents runtime errors. |
+| **Styling & CSS** | **Vanilla CSS Tokens + CSS Modules** | High aesthetic fidelity without framework bloat. Adheres strictly to the `page-is-the-object` tactile design system, fluid `clamp()` type scaling, and zero-slop layout rules. |
 | **Server State** | **TanStack Query v5** | — | Built-in caching, background revalidation, optimistic updates for slot booking and transfer requests, and automatic deduplication. |
 | **Client State** | **Zustand** | — | Lightweight store for active session tokens, sidebar collapse states, turnstile camera device IDs, and ephemeral modal states. |
 | **Form Management** | **React Hook Form + Zod** | — | Type-safe schema validation matching backend Pydantic v2 schemas; minimal re-renders on dense administrative forms. |
